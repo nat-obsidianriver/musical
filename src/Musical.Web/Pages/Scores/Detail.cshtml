@@ -1,0 +1,231 @@
+@page "{id:int}"
+@model DetailModel
+@{
+    ViewData["Title"] = Model.Score?.Title ?? "Score Detail";
+}
+
+@if (Model.Score is null)
+{
+    <div class="alert alert-warning">Score not found.</div>
+    <a asp-page="/Index" class="btn btn-outline-secondary">Back to Library</a>
+    return;
+}
+
+<div class="d-flex justify-content-between align-items-start mb-3">
+    <div>
+        <h1 class="h2 mb-0">@Model.Score.Title</h1>
+        @if (!string.IsNullOrEmpty(Model.Score.Composer))
+        {
+            <p class="text-muted mb-0">@Model.Score.Composer</p>
+        }
+        @if (!string.IsNullOrEmpty(Model.Score.Description))
+        {
+            <p class="small mt-1">@Model.Score.Description</p>
+        }
+    </div>
+    <a asp-page="/Index" class="btn btn-outline-secondary btn-sm">&#8592; Back</a>
+</div>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success">@Model.SuccessMessage</div>
+}
+
+<div class="row g-4">
+    <!-- Image with annotation overlay -->
+    <div class="col-lg-8">
+        <p class="text-muted small mb-1">Click anywhere on the score to add an annotation.</p>
+        <div id="score-container" class="position-relative border rounded shadow-sm overflow-hidden"
+             style="cursor:crosshair;">
+            <img id="score-image"
+                 src="@Model.ApiBase/api/scores/@Model.Score.Id/image"
+                 alt="@Model.Score.Title"
+                 class="img-fluid w-100 d-block"
+                 draggable="false" />
+
+            @foreach (var ann in Model.Annotations)
+            {
+                <div class="annotation-pin"
+                     data-id="@ann.Id"
+                     data-author="@ann.AuthorName"
+                     data-content="@ann.Content"
+                     data-date="@ann.CreatedAt.ToString("MMM d, yyyy")"
+                     style="left:@(ann.PositionX.ToString("F2", System.Globalization.CultureInfo.InvariantCulture))%;top:@(ann.PositionY.ToString("F2", System.Globalization.CultureInfo.InvariantCulture))%;position:absolute;transform:translate(-50%,-50%);width:24px;height:24px;border-radius:50%;background:rgba(220,53,69,0.85);border:2px solid white;cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold;">
+                    &#9670;
+                </div>
+            }
+        </div>
+    </div>
+
+    <!-- Annotation panel -->
+    <div class="col-lg-4">
+        <!-- Add annotation form (hidden until user clicks image) -->
+        <div id="add-form-panel" class="card mb-3 d-none">
+            <div class="card-header fw-semibold">Add Annotation</div>
+            <div class="card-body">
+                <form id="add-annotation-form">
+                    <input type="hidden" id="pos-x" name="posX" />
+                    <input type="hidden" id="pos-y" name="posY" />
+                    <div class="mb-2">
+                        <label for="author-name" class="form-label small fw-semibold">Your Name</label>
+                        <input type="text" id="author-name" class="form-control form-control-sm"
+                               placeholder="e.g. Jane Smith" maxlength="100" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="annotation-content" class="form-label small fw-semibold">Note</label>
+                        <textarea id="annotation-content" class="form-control form-control-sm" rows="3"
+                                  placeholder="Your annotation..." maxlength="2000" required></textarea>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                        <button type="button" id="cancel-annotation" class="btn btn-sm btn-outline-secondary">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Selected annotation detail -->
+        <div id="annotation-detail" class="card mb-3 d-none">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span class="fw-semibold" id="detail-author"></span>
+                <button id="close-detail" class="btn-close btn-sm" aria-label="Close"></button>
+            </div>
+            <div class="card-body">
+                <p id="detail-content" class="mb-1"></p>
+                <small id="detail-date" class="text-muted"></small>
+            </div>
+            <div class="card-footer">
+                <button id="delete-annotation" class="btn btn-sm btn-outline-danger">Delete</button>
+            </div>
+        </div>
+
+        <!-- Annotation list -->
+        <div class="card">
+            <div class="card-header fw-semibold">
+                Annotations <span class="badge bg-secondary ms-1">@Model.Annotations.Count</span>
+            </div>
+            <ul class="list-group list-group-flush" id="annotation-list">
+                @if (!Model.Annotations.Any())
+                {
+                    <li class="list-group-item text-muted small">No annotations yet. Click the score to add one.</li>
+                }
+                else
+                {
+                    @foreach (var ann in Model.Annotations.OrderBy(a => a.CreatedAt))
+                    {
+                        <li class="list-group-item annotation-list-item" data-id="@ann.Id" style="cursor:pointer;">
+                            <div class="fw-semibold small">@ann.AuthorName</div>
+                            <div class="small text-truncate">@ann.Content</div>
+                            <div class="text-muted" style="font-size:.75rem;">@ann.CreatedAt.ToString("MMM d, yyyy")</div>
+                        </li>
+                    }
+                }
+            </ul>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    const scoreId = @Model.Score.Id;
+    const apiBase = '@Model.ApiBase';
+
+    const container = document.getElementById('score-container');
+    const img = document.getElementById('score-image');
+    const addPanel = document.getElementById('add-form-panel');
+    const detailPanel = document.getElementById('annotation-detail');
+    const posXInput = document.getElementById('pos-x');
+    const posYInput = document.getElementById('pos-y');
+
+    // Click on image to place annotation
+    container.addEventListener('click', function (e) {
+        if (e.target.classList.contains('annotation-pin')) return;
+        const rect = img.getBoundingClientRect();
+        const x = ((e.clientX - rect.left) / rect.width * 100).toFixed(2);
+        const y = ((e.clientY - rect.top) / rect.height * 100).toFixed(2);
+        posXInput.value = x;
+        posYInput.value = y;
+        addPanel.classList.remove('d-none');
+        detailPanel.classList.add('d-none');
+        document.getElementById('author-name').focus();
+    });
+
+    document.getElementById('cancel-annotation').addEventListener('click', () => {
+        addPanel.classList.add('d-none');
+    });
+
+    // Submit annotation
+    document.getElementById('add-annotation-form').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const author = document.getElementById('author-name').value.trim();
+        const content = document.getElementById('annotation-content').value.trim();
+        if (!author || !content) return;
+
+        const body = {
+            authorName: author,
+            content: content,
+            positionX: parseFloat(posXInput.value),
+            positionY: parseFloat(posYInput.value)
+        };
+
+        const res = await fetch(`${apiBase}/api/scores/${scoreId}/annotations`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        });
+
+        if (res.ok) {
+            location.reload();
+        } else {
+            alert('Failed to save annotation. Please try again.');
+        }
+    });
+
+    // Click annotation pin
+    document.querySelectorAll('.annotation-pin').forEach(pin => {
+        pin.addEventListener('click', function (e) {
+            e.stopPropagation();
+            showDetail(this.dataset.id, this.dataset.author, this.dataset.content, this.dataset.date);
+        });
+    });
+
+    // Click annotation list item
+    document.querySelectorAll('.annotation-list-item').forEach(item => {
+        item.addEventListener('click', function () {
+            const pin = document.querySelector(`.annotation-pin[data-id="${this.dataset.id}"]`);
+            if (pin) showDetail(pin.dataset.id, pin.dataset.author, pin.dataset.content, pin.dataset.date);
+        });
+    });
+
+    function showDetail(id, author, content, date) {
+        document.getElementById('detail-author').textContent = author;
+        document.getElementById('detail-content').textContent = content;
+        document.getElementById('detail-date').textContent = date;
+        document.getElementById('delete-annotation').dataset.id = id;
+        detailPanel.classList.remove('d-none');
+        addPanel.classList.add('d-none');
+    }
+
+    document.getElementById('close-detail').addEventListener('click', () => {
+        detailPanel.classList.add('d-none');
+    });
+
+    // Delete annotation
+    document.getElementById('delete-annotation').addEventListener('click', async function () {
+        const id = this.dataset.id;
+        if (!confirm('Delete this annotation?')) return;
+        const res = await fetch(`${apiBase}/api/scores/${scoreId}/annotations/${id}`, {
+            method: 'DELETE'
+        });
+        if (res.ok) {
+            location.reload();
+        } else {
+            alert('Failed to delete annotation.');
+        }
+    });
+</script>
+}

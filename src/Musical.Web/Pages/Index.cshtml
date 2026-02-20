@@ -1,0 +1,51 @@
+@page
+@model IndexModel
+@{
+    ViewData["Title"] = "Browse Scores";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2 mb-0">Sheet Music Library</h1>
+    <a asp-page="/Scores/Upload" class="btn btn-primary">+ Upload Score</a>
+</div>
+
+@if (!Model.Scores.Any())
+{
+    <div class="text-center py-5 text-muted">
+        <p class="fs-5">No scores uploaded yet.</p>
+        <a asp-page="/Scores/Upload" class="btn btn-outline-primary">Upload the first one</a>
+    </div>
+}
+else
+{
+    <div class="row row-cols-1 row-cols-md-3 g-4">
+        @foreach (var score in Model.Scores)
+        {
+            <div class="col">
+                <div class="card h-100 shadow-sm">
+                    <a asp-page="/Scores/Detail" asp-route-id="@score.Id">
+                        <img src="@Model.ApiBase/api/scores/@score.Id/image"
+                             class="card-img-top"
+                             alt="@score.Title"
+                             style="height:180px;object-fit:cover;" />
+                    </a>
+                    <div class="card-body">
+                        <h5 class="card-title">@score.Title</h5>
+                        @if (!string.IsNullOrEmpty(score.Composer))
+                        {
+                            <p class="card-text text-muted small mb-1">@score.Composer</p>
+                        }
+                        @if (!string.IsNullOrEmpty(score.Description))
+                        {
+                            <p class="card-text small">@score.Description</p>
+                        }
+                    </div>
+                    <div class="card-footer d-flex justify-content-between align-items-center">
+                        <small class="text-muted">@score.AnnotationCount annotation(s)</small>
+                        <a asp-page="/Scores/Detail" asp-route-id="@score.Id" class="btn btn-sm btn-outline-secondary">View &amp; Annotate</a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

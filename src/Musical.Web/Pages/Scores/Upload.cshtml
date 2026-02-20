@@ -1,0 +1,46 @@
+@page
+@model UploadModel
+@{
+    ViewData["Title"] = "Upload Score";
+}
+
+<h1 class="h2 mb-4">Upload Sheet Music</h1>
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+
+<div class="row">
+    <div class="col-md-6">
+        <form method="post" enctype="multipart/form-data">
+            <div class="mb-3">
+                <label asp-for="Title" class="form-label fw-semibold"></label>
+                <input asp-for="Title" class="form-control" placeholder="e.g. Moonlight Sonata" required />
+                <span asp-validation-for="Title" class="text-danger"></span>
+            </div>
+            <div class="mb-3">
+                <label asp-for="Composer" class="form-label fw-semibold"></label>
+                <input asp-for="Composer" class="form-control" placeholder="e.g. Ludwig van Beethoven" />
+            </div>
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label fw-semibold"></label>
+                <textarea asp-for="Description" class="form-control" rows="3"
+                          placeholder="Optional notes about this score..."></textarea>
+            </div>
+            <div class="mb-4">
+                <label asp-for="Image" class="form-label fw-semibold"></label>
+                <input asp-for="Image" class="form-control" type="file" accept="image/*" required />
+                <div class="form-text">Accepted formats: JPG, PNG, GIF, WebP</div>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">Upload</button>
+                <a asp-page="/Index" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

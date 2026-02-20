@@ -1,0 +1,7 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Musical.Api/Musical.Api.csproj" />
+    <Project Path="src/Musical.Core/Musical.Core.csproj" />
+    <Project Path="src/Musical.Web/Musical.Web.csproj" />
+  </Folder>
+</Solution>
