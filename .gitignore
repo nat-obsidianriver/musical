@@ -480,3 +480,14 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# SQLite databases
+*.db
+*.db-shm
+*.db-wal
+
+# Uploaded score images and annotation attachments
+uploads/
+
+# Claude Code internal files
+.claude/

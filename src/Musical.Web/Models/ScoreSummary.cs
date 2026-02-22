@@ -16,4 +16,7 @@ public record AnnotationViewModel(
     string Content,
     double PositionX,
     double PositionY,
+    double? PositionXEnd,
+    double? PositionYEnd,
+    string? AttachmentFileName,
     DateTime CreatedAt);

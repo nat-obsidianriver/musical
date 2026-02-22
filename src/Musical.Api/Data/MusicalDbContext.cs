@@ -21,6 +21,7 @@ public class MusicalDbContext(DbContextOptions<MusicalDbContext> options) : DbCo
         {
             e.Property(a => a.AuthorName).HasMaxLength(100).IsRequired();
             e.Property(a => a.Content).HasMaxLength(2000).IsRequired();
+            e.Property(a => a.AttachmentFileName).HasMaxLength(500);
             e.HasOne(a => a.Score)
              .WithMany(s => s.Annotations)
              .HasForeignKey(a => a.ScoreId)

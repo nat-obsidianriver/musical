@@ -1,0 +1,35 @@
+@page
+@model AboutModel
+@{
+    ViewData["Title"] = "About";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+        <h1 class="h2 mb-4">About Study Sax</h1>
+
+        <p class="lead">
+            Study Sax is a collaborative sheet music annotation platform designed to help
+            students and instructors communicate directly on the page.
+        </p>
+
+        <p>
+            Upload any sheet music image, click anywhere on the score to place a note, and share
+            your insights with fellow musicians. Annotations are visible to everyone who views the
+            score, making Study Sax ideal for lesson feedback, ensemble preparation, and self-study.
+        </p>
+
+        <h2 class="h5 mt-4 mb-2">How it works</h2>
+        <ol>
+            <li class="mb-1">Upload a scanned or photographed sheet music image.</li>
+            <li class="mb-1">Click directly on the score to place an annotation at that exact spot.</li>
+            <li class="mb-1">Enter your name and note — saved instantly for all viewers.</li>
+            <li class="mb-1">Browse and expand annotations in the side panel, or click pins on the image.</li>
+        </ol>
+
+        <div class="mt-4">
+            <a asp-page="/Index" class="btn btn-primary me-2">Browse Scores</a>
+            <a asp-page="/Contact" class="btn btn-outline-secondary">Get in Touch</a>
+        </div>
+    </div>
+</div>

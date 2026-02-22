@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - Musical</title>
+    <title>@ViewData["Title"] - Study Sax</title>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -11,9 +11,12 @@
 </head>
 <body>
     <header>
-        <nav class="navbar navbar-expand-sm navbar-dark bg-dark border-bottom box-shadow mb-3">
+        <nav class="navbar navbar-expand-sm navbar-light border-bottom box-shadow mb-3" style="background-color:#87CEEB;">
             <div class="container">
-                <a class="navbar-brand fw-bold" asp-area="" asp-page="/Index">&#9835; Musical</a>
+                <a class="navbar-brand d-flex align-items-center gap-2 fw-bold" asp-area="" asp-page="/Index">
+                    <img src="~/images/study-sax-logo.jpeg" alt="Study Sax" style="height:48px;width:auto;border-radius:6px;" />
+                    <span style="font-size:1.3rem;color:#1a1a1a;">Study Sax</span>
+                </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse"
                         aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
@@ -21,10 +24,18 @@
                 <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
                     <ul class="navbar-nav flex-grow-1">
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-page="/Index">Browse Scores</a>
+                            <a class="nav-link fw-semibold" style="color:#1a1a1a;" asp-area="" asp-page="/Index">Browse Scores</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" asp-area="" asp-page="/Scores/Upload">Upload Score</a>
+                            <a class="nav-link fw-semibold" style="color:#1a1a1a;" asp-area="" asp-page="/Scores/Upload">Upload Score</a>
+                        </li>
+                    </ul>
+                    <ul class="navbar-nav ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link fw-semibold" style="color:#1a1a1a;" asp-area="" asp-page="/About">About</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link fw-semibold" style="color:#1a1a1a;" asp-area="" asp-page="/Contact">Contact</a>
                         </li>
                     </ul>
                 </div>
@@ -39,7 +50,7 @@
 
     <footer class="border-top footer text-muted">
         <div class="container">
-            &copy; 2026 &mdash; Musical
+            &copy; 2026 &mdash; Study Sax
         </div>
     </footer>
 
