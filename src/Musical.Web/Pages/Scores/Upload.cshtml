@@ -1,8 +1,6 @@
 @page
 @model UploadModel
-@{
-    ViewData["Title"] = "Upload Score";
-}
+@{ ViewData["Title"] = "Upload Score"; }
 
 <h1 class="h2 mb-4">Upload Sheet Music</h1>
 
@@ -27,6 +25,13 @@
                 <label asp-for="Description" class="form-label fw-semibold"></label>
                 <textarea asp-for="Description" class="form-control" rows="3"
                           placeholder="Optional notes about this score..."></textarea>
+            </div>
+            <div class="mb-3">
+                <label asp-for="FolderId" class="form-label fw-semibold">Folder</label>
+                <select asp-for="FolderId" asp-items="Model.FolderOptions"
+                        class="form-select">
+                    <option value="">— No folder —</option>
+                </select>
             </div>
             <div class="mb-4">
                 <label asp-for="Image" class="form-label fw-semibold"></label>

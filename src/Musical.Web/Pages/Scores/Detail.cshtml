@@ -191,8 +191,9 @@
 
 @section Scripts {
 <script>
-    const scoreId = @Model.Score.Id;
-    const apiBase = '@Model.ApiBase';
+    const scoreId  = @Model.Score.Id;
+    const apiBase  = '@Model.ApiBase';
+    const jwtToken = '@(Model.JwtToken ?? "")';
 
     const container = document.getElementById('score-container');
     const img       = document.getElementById('score-image');
@@ -327,8 +328,10 @@
         const file = document.getElementById('attachment-file').files[0];
         if (file) fd.append('attachment', file);
 
+        const headers = jwtToken ? { 'Authorization': `Bearer ${jwtToken}` } : {};
         const res = await fetch(`${apiBase}/api/scores/${scoreId}/annotations`, {
             method: 'POST',
+            headers,
             body: fd
         });
 
@@ -341,8 +344,10 @@
         const btn = e.target.closest('.delete-btn');
         if (!btn) return;
         if (!confirm('Delete this annotation?')) return;
+        const authHeaders = jwtToken ? { 'Authorization': `Bearer ${jwtToken}` } : {};
         const res = await fetch(`${apiBase}/api/scores/${scoreId}/annotations/${btn.dataset.id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: authHeaders
         });
         if (res.ok) { location.reload(); }
         else { alert('Failed to delete annotation.'); }

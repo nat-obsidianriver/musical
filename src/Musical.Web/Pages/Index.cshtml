@@ -2,50 +2,86 @@
 @model IndexModel
 @{
     ViewData["Title"] = "Browse Scores | Study Sax";
+    var grouped = Model.Scores
+        .GroupBy(s => new { s.FolderId, s.FolderName, s.FolderColor })
+        .OrderBy(g => g.Key.FolderName ?? "zzz");
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1 class="h2 mb-0">Sheet Music Library</h1>
-    <a asp-page="/Scores/Upload" class="btn btn-primary">+ Upload Score</a>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <a asp-page="/Scores/Upload" class="btn btn-primary">+ Upload Score</a>
+    }
 </div>
 
 @if (!Model.Scores.Any())
 {
     <div class="text-center py-5 text-muted">
         <p class="fs-5">No scores uploaded yet.</p>
-        <a asp-page="/Scores/Upload" class="btn btn-outline-primary">Upload the first one</a>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <a asp-page="/Scores/Upload" class="btn btn-outline-primary">Upload the first one</a>
+        }
+        else
+        {
+            <a asp-page="/Auth/Login" class="btn btn-outline-primary">Sign in to upload</a>
+        }
     </div>
 }
 else
 {
-    <div class="row row-cols-1 row-cols-md-3 g-4">
-        @foreach (var score in Model.Scores)
-        {
-            <div class="col">
-                <div class="card h-100 shadow-sm">
-                    <a asp-page="/Scores/Detail" asp-route-id="@score.Id">
-                        <img src="@Model.ApiBase/api/scores/@score.Id/image"
-                             class="card-img-top"
-                             alt="@score.Title"
-                             style="height:180px;object-fit:cover;" />
-                    </a>
-                    <div class="card-body">
-                        <h5 class="card-title">@score.Title</h5>
-                        @if (!string.IsNullOrEmpty(score.Composer))
-                        {
-                            <p class="card-text text-muted small mb-1">@score.Composer</p>
-                        }
-                        @if (!string.IsNullOrEmpty(score.Description))
-                        {
-                            <p class="card-text small">@score.Description</p>
-                        }
-                    </div>
-                    <div class="card-footer d-flex justify-content-between align-items-center">
-                        <small class="text-muted">@score.AnnotationCount annotation(s)</small>
-                        <a asp-page="/Scores/Detail" asp-route-id="@score.Id" class="btn btn-sm btn-outline-secondary">View &amp; Annotate</a>
-                    </div>
+    @foreach (var group in grouped)
+    {
+        var folderColor = group.Key.FolderColor ?? "#87CEEB";
+        <div class="mb-5">
+            @if (group.Key.FolderName is not null)
+            {
+                <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                    <span style="width:14px;height:14px;border-radius:50%;background:@folderColor;display:inline-block;flex-shrink:0;"></span>
+                    <h2 class="h5 mb-0 fw-semibold">@group.Key.FolderName</h2>
+                    <span class="text-muted small">(@group.Count() score@(group.Count() == 1 ? "" : "s"))</span>
                 </div>
+            }
+            else
+            {
+                <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                    <h2 class="h5 mb-0 fw-semibold text-muted">Uncategorized</h2>
+                    <span class="text-muted small">(@group.Count() score@(group.Count() == 1 ? "" : "s"))</span>
+                </div>
+            }
+
+            <div class="row row-cols-1 row-cols-md-3 g-4">
+                @foreach (var score in group)
+                {
+                    <div class="col">
+                        <div class="card h-100 shadow-sm">
+                            <a asp-page="/Scores/Detail" asp-route-id="@score.Id">
+                                <img src="@Model.ApiBase/api/scores/@score.Id/image"
+                                     class="card-img-top"
+                                     alt="@score.Title"
+                                     style="height:180px;object-fit:cover;" />
+                            </a>
+                            <div class="card-body">
+                                <h5 class="card-title">@score.Title</h5>
+                                @if (!string.IsNullOrEmpty(score.Composer))
+                                {
+                                    <p class="card-text text-muted small mb-1">@score.Composer</p>
+                                }
+                                @if (!string.IsNullOrEmpty(score.Description))
+                                {
+                                    <p class="card-text small">@score.Description</p>
+                                }
+                            </div>
+                            <div class="card-footer d-flex justify-content-between align-items-center">
+                                <small class="text-muted">@score.AnnotationCount annotation(s)</small>
+                                <a asp-page="/Scores/Detail" asp-route-id="@score.Id"
+                                   class="btn btn-sm btn-outline-secondary">View &amp; Annotate</a>
+                            </div>
+                        </div>
+                    </div>
+                }
             </div>
-        }
-    </div>
+        </div>
+    }
 }

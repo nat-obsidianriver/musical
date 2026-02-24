@@ -9,6 +9,7 @@ public class DetailModel(IHttpClientFactory httpClientFactory, IConfiguration co
     public ScoreSummary? Score { get; private set; }
     public List<AnnotationViewModel> Annotations { get; private set; } = [];
     public string ApiBase { get; private set; } = string.Empty;
+    public string? JwtToken => HttpContext.Session.GetString("jwt");
     public string? ErrorMessage { get; set; }
     public string? SuccessMessage { get; set; }
 

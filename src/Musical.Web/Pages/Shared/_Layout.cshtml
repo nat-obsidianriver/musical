@@ -37,6 +37,28 @@
                         <li class="nav-item">
                             <a class="nav-link fw-semibold" style="color:#1a1a1a;" asp-area="" asp-page="/Contact">Contact</a>
                         </li>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item dropdown">
+                                <a class="nav-link fw-semibold dropdown-toggle" style="color:#1a1a1a;" href="#"
+                                   role="button" data-bs-toggle="dropdown">
+                                    @User.Identity.Name
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <form method="post" asp-page="/Auth/Logout">
+                                            <button type="submit" class="dropdown-item">Sign Out</button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link fw-semibold" style="color:#1a1a1a;" asp-page="/Auth/Login">Sign In</a>
+                            </li>
+                        }
                     </ul>
                 </div>
             </div>

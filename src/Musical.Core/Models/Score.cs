@@ -9,5 +9,8 @@ public class Score
     public required string ImageFileName { get; set; }
     public DateTime UploadedAt { get; set; } = DateTime.UtcNow;
 
+    public int? FolderId { get; set; }
+    public Folder? Folder { get; set; }
+
     public ICollection<Annotation> Annotations { get; set; } = [];
 }

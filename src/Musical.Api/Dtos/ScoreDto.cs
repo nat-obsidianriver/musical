@@ -7,9 +7,13 @@ public record ScoreDto(
     string? Description,
     string ImageFileName,
     DateTime UploadedAt,
-    int AnnotationCount);
+    int AnnotationCount,
+    int? FolderId,
+    string? FolderName,
+    string? FolderColor);
 
 public record CreateScoreRequest(
     string Title,
     string? Composer,
-    string? Description);
+    string? Description,
+    int? FolderId);
