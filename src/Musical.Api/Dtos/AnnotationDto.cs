@@ -10,15 +10,19 @@ public record AnnotationDto(
     double? PositionXEnd,
     double? PositionYEnd,
     string? AttachmentFileName,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string? UserId,
+    int? FolderId,
+    string? FolderName,
+    string? FolderColor);
 
 public class CreateAnnotationForm
 {
-    public string AuthorName { get; set; } = string.Empty;
     public string Content { get; set; } = string.Empty;
     public double PositionX { get; set; }
     public double PositionY { get; set; }
     public double? PositionXEnd { get; set; }
     public double? PositionYEnd { get; set; }
+    public int? FolderId { get; set; }
     public IFormFile? Attachment { get; set; }
 }

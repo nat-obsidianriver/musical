@@ -48,4 +48,19 @@ public record AnnotationViewModel(
     double? PositionXEnd,
     double? PositionYEnd,
     string? AttachmentFileName,
-    DateTime CreatedAt);
+    DateTime CreatedAt,
+    string? UserId,
+    int? FolderId,
+    string? FolderName,
+    string? FolderColor);
+
+public record AnnotationFolderGroup(
+    int? FolderId,
+    string FolderName,
+    string FolderColor,
+    List<AnnotationViewModel> Annotations);
+
+public record AnnotationUserGroup(
+    string AuthorName,
+    string? UserId,
+    List<AnnotationFolderGroup> Folders);

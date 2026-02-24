@@ -32,10 +32,15 @@ public class MusicalDbContext(DbContextOptions<MusicalDbContext> options)
             e.Property(a => a.AuthorName).HasMaxLength(100).IsRequired();
             e.Property(a => a.Content).HasMaxLength(2000).IsRequired();
             e.Property(a => a.AttachmentFileName).HasMaxLength(500);
+            e.Property(a => a.UserId).HasMaxLength(450);
             e.HasOne(a => a.Score)
              .WithMany(s => s.Annotations)
              .HasForeignKey(a => a.ScoreId)
              .OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(a => a.Folder)
+             .WithMany()
+             .HasForeignKey(a => a.FolderId)
+             .OnDelete(DeleteBehavior.SetNull);
         });
 
         modelBuilder.Entity<Folder>(e =>

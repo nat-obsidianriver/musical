@@ -2,16 +2,16 @@
 @model DetailModel
 @{
     ViewData["Title"] = Model.Score?.Title ?? "Score Detail";
+    bool isAuth = User.Identity?.IsAuthenticated == true;
+    bool isAdmin = User.IsInRole("Admin");
 
     Microsoft.AspNetCore.Html.HtmlString LinkifyContent(string text)
     {
         var urlPattern = new System.Text.RegularExpressions.Regex(
             @"https?://[^\s<>""]+",
             System.Text.RegularExpressions.RegexOptions.IgnoreCase);
-
         var sb = new System.Text.StringBuilder();
         int lastIndex = 0;
-
         foreach (System.Text.RegularExpressions.Match m in urlPattern.Matches(text))
         {
             sb.Append(System.Net.WebUtility.HtmlEncode(text[lastIndex..m.Index]));
@@ -20,11 +20,23 @@
             lastIndex = m.Index + m.Length;
         }
         sb.Append(System.Net.WebUtility.HtmlEncode(text[lastIndex..]));
-
         return new Microsoft.AspNetCore.Html.HtmlString(sb.ToString());
     }
 
+    string HexToRgba(string hex, double alpha)
+    {
+        hex = hex.TrimStart('#');
+        if (hex.Length != 6) return $"rgba(135,206,235,{alpha:F2})";
+        int r = Convert.ToInt32(hex[0..2], 16);
+        int g = Convert.ToInt32(hex[2..4], 16);
+        int b = Convert.ToInt32(hex[4..6], 16);
+        return $"rgba({r},{g},{b},{alpha.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)})";
+    }
+
     string Fmt(double v) => v.ToString("F2", System.Globalization.CultureInfo.InvariantCulture);
+
+    // Default color for form / drag preview (first folder, or sky blue)
+    var defaultColor = Model.UserFolders.FirstOrDefault()?.Color ?? "#87CEEB";
 }
 
 @if (Model.Score is null)
@@ -55,11 +67,14 @@
 }
 
 <div class="row g-4">
-    <!-- Image with annotation overlay -->
+    <!-- Score image with annotation overlays -->
     <div class="col-lg-8">
-        <p class="text-muted small mb-1">Click to add a point annotation, or click and drag to mark a range.</p>
+        @if (isAuth)
+        {
+            <p class="text-muted small mb-1">Click to add a point annotation, or click and drag to mark a range.</p>
+        }
         <div id="score-container" class="position-relative border rounded shadow-sm overflow-hidden"
-             style="cursor:crosshair; user-select:none;">
+             style="@(isAuth ? "cursor:crosshair;" : "") user-select:none;">
             <img id="score-image"
                  src="@Model.ApiBase/api/scores/@Model.Score.Id/image"
                  alt="@Model.Score.Title"
@@ -68,10 +83,11 @@
 
             <!-- Drag preview rectangle -->
             <div id="drag-preview"
-                 style="display:none;position:absolute;border:2px dashed #0d6efd;background:rgba(13,110,253,0.12);pointer-events:none;"></div>
+                 style="display:none;position:absolute;border:2px dashed @defaultColor;background:@HexToRgba(defaultColor, 0.15);pointer-events:none;"></div>
 
             @foreach (var ann in Model.Annotations)
             {
+                var color = ann.FolderColor ?? "#aaaaaa";
                 @if (ann.PositionXEnd.HasValue && ann.PositionYEnd.HasValue)
                 {
                     var left   = Math.Min(ann.PositionX, ann.PositionXEnd.Value);
@@ -80,14 +96,14 @@
                     var height = Math.Abs(ann.PositionYEnd.Value - ann.PositionY);
                     <div class="annotation-range"
                          data-id="@ann.Id"
-                         style="left:@(Fmt(left))%;top:@(Fmt(top))%;width:@(Fmt(width))%;height:@(Fmt(height))%;position:absolute;background:rgba(220,53,69,0.18);border:2px solid rgba(220,53,69,0.75);cursor:pointer;box-sizing:border-box;"
+                         style="left:@(Fmt(left))%;top:@(Fmt(top))%;width:@(Fmt(width))%;height:@(Fmt(height))%;position:absolute;background:@HexToRgba(color, 0.20);border:2px solid @HexToRgba(color, 0.80);cursor:pointer;box-sizing:border-box;"
                          title="@ann.AuthorName"></div>
                 }
                 else
                 {
                     <div class="annotation-pin"
                          data-id="@ann.Id"
-                         style="left:@(Fmt(ann.PositionX))%;top:@(Fmt(ann.PositionY))%;position:absolute;transform:translate(-50%,-50%);width:26px;height:26px;border-radius:50%;background:rgba(220,53,69,0.85);border:2px solid white;cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:bold;"
+                         style="left:@(Fmt(ann.PositionX))%;top:@(Fmt(ann.PositionY))%;position:absolute;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;background:@HexToRgba(color, 0.90);border:2px solid white;cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:bold;box-shadow:0 1px 3px rgba(0,0,0,.35);"
                          title="@ann.AuthorName">
                         &#9670;
                     </div>
@@ -98,94 +114,167 @@
 
     <!-- Annotation panel -->
     <div class="col-lg-4">
-        <!-- Add annotation form (hidden until user clicks/drags image) -->
-        <div id="add-form-panel" class="card mb-3 d-none">
-            <div class="card-header fw-semibold" style="background-color:#87CEEB;">
-                <span id="form-mode-label">Add Annotation</span>
-            </div>
-            <div class="card-body">
-                <form id="add-annotation-form" enctype="multipart/form-data">
-                    <input type="hidden" id="pos-x" />
-                    <input type="hidden" id="pos-y" />
-                    <input type="hidden" id="pos-x-end" />
-                    <input type="hidden" id="pos-y-end" />
-                    <div class="mb-2">
-                        <label for="author-name" class="form-label small fw-semibold">Your Name</label>
-                        <input type="text" id="author-name" class="form-control form-control-sm"
-                               placeholder="e.g. Jane Smith" maxlength="100" required />
-                    </div>
-                    <div class="mb-2">
-                        <label for="annotation-content" class="form-label small fw-semibold">Note</label>
-                        <textarea id="annotation-content" class="form-control form-control-sm" rows="3"
-                                  placeholder="Your annotation... paste a URL to create a link." maxlength="2000" required></textarea>
-                    </div>
-                    <div class="mb-3">
-                        <label for="attachment-file" class="form-label small fw-semibold">
-                            Image Attachment <span class="text-muted fw-normal">(optional)</span>
-                        </label>
-                        <input type="file" id="attachment-file" class="form-control form-control-sm"
-                               accept=".jpg,.jpeg,.png,.gif,.webp" />
-                    </div>
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-sm btn-primary">Save</button>
-                        <button type="button" id="cancel-annotation" class="btn btn-sm btn-outline-secondary">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        </div>
 
-        <!-- Annotation list -->
+        <!-- Add annotation form — shown after click/drag, auth users only -->
+        @if (isAuth)
+        {
+            <div id="add-form-panel" class="card mb-3 d-none">
+                <div class="card-header fw-semibold" id="form-header"
+                     style="background-color:@defaultColor;">
+                    <span id="form-mode-label">Add Annotation</span>
+                </div>
+                <div class="card-body">
+                    <form id="add-annotation-form" enctype="multipart/form-data">
+                        <input type="hidden" id="pos-x" />
+                        <input type="hidden" id="pos-y" />
+                        <input type="hidden" id="pos-x-end" />
+                        <input type="hidden" id="pos-y-end" />
+
+                        @if (Model.UserFolders.Count > 1)
+                        {
+                            <div class="mb-2">
+                                <label class="form-label small fw-semibold">Folder</label>
+                                <select id="folder-select" class="form-select form-select-sm">
+                                    @foreach (var f in Model.UserFolders)
+                                    {
+                                        <option value="@f.Id" data-color="@f.Color">@f.Name</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                        else if (Model.UserFolders.Count == 1)
+                        {
+                            <input type="hidden" id="folder-select" value="@Model.UserFolders[0].Id"
+                                   data-color="@Model.UserFolders[0].Color" />
+                            <p class="text-muted small mb-2">
+                                Filing under: <strong>@Model.UserFolders[0].Name</strong>
+                            </p>
+                        }
+
+                        <div class="mb-2">
+                            <label for="annotation-content" class="form-label small fw-semibold">Note</label>
+                            <textarea id="annotation-content" class="form-control form-control-sm" rows="3"
+                                      placeholder="Your annotation... paste a URL to create a link." maxlength="2000" required></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label for="attachment-file" class="form-label small fw-semibold">
+                                Image <span class="text-muted fw-normal">(optional)</span>
+                            </label>
+                            <input type="file" id="attachment-file" class="form-control form-control-sm"
+                                   accept=".jpg,.jpeg,.png,.gif,.webp" />
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                            <button type="button" id="cancel-annotation" class="btn btn-sm btn-outline-secondary">Cancel</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+
+        <!-- Annotation hierarchy -->
         <div class="card">
             <div class="card-header fw-semibold d-flex justify-content-between align-items-center"
                  style="background-color:#87CEEB;">
                 <span>Annotations</span>
                 <span class="badge bg-dark">@Model.Annotations.Count</span>
             </div>
-            <ul class="list-group list-group-flush" id="annotation-list">
-                @if (!Model.Annotations.Any())
-                {
-                    <li class="list-group-item text-muted small">No annotations yet. Click the score to add one.</li>
-                }
-                else
-                {
-                    @foreach (var ann in Model.Annotations.OrderBy(a => a.CreatedAt))
+
+            @if (!Model.AnnotationGroups.Any())
+            {
+                <div class="card-body text-muted small">
+                    @if (isAuth)
                     {
-                        <li class="list-group-item annotation-list-item" data-id="@ann.Id">
-
-                            <!-- Collapsed row: always visible -->
-                            <div class="annotation-collapsed d-flex justify-content-between align-items-center">
-                                <span class="fw-semibold small">
-                                    @if (ann.PositionXEnd.HasValue)
-                                    {
-                                        <span class="badge me-1" style="background:#dc3545;font-size:.65rem;">RANGE</span>
-                                    }
-                                    @ann.AuthorName
-                                </span>
-                                <span class="text-muted" style="font-size:.72rem;">@ann.CreatedAt.ToString("MMM d, yyyy")</span>
-                            </div>
-
-                            <!-- Expanded content -->
-                            <div class="annotation-expanded">
-                                <p class="mb-2 mt-2" style="font-size:.95rem;white-space:pre-wrap;">@LinkifyContent(ann.Content)</p>
-                                @if (ann.AttachmentFileName is not null)
+                        <span>No annotations yet. Click the score to add one.</span>
+                    }
+                    else
+                    {
+                        <span>No annotations yet. <a asp-page="/Auth/Login">Sign in</a> to add one.</span>
+                    }
+                </div>
+            }
+            else
+            {
+                <div class="accordion accordion-flush" id="userAccordion">
+                    @{ int userIdx = 0; }
+                    @foreach (var userGroup in Model.AnnotationGroups)
+                    {
+                        var userId = $"user-{userIdx++}";
+                        var collapseId = $"collapse-{userId}";
+                        <div class="accordion-item border-0">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button py-2 px-3 fw-semibold small bg-light"
+                                        type="button" data-bs-toggle="collapse"
+                                        data-bs-target="#@collapseId">
+                                    @userGroup.AuthorName
+                                    <span class="badge bg-secondary ms-2" style="font-size:.7rem;">
+                                        @userGroup.Folders.Sum(f => f.Annotations.Count)
+                                    </span>
+                                </button>
+                            </h2>
+                            <div id="@collapseId" class="accordion-collapse collapse show">
+                                @foreach (var folderGroup in userGroup.Folders)
                                 {
-                                    <div class="mb-2">
-                                        <img src="@Model.ApiBase/api/scores/@Model.Score.Id/annotations/@ann.Id/attachment"
-                                             alt="Annotation attachment"
-                                             class="img-fluid rounded"
-                                             style="max-height:200px;cursor:pointer;"
-                                             onclick="window.open(this.src,'_blank')" />
+                                    <div class="px-2 pt-2">
+                                        <!-- Folder label -->
+                                        <div class="d-flex align-items-center gap-2 px-1 py-1 mb-1"
+                                             style="border-left:3px solid @folderGroup.FolderColor;">
+                                            <span style="width:10px;height:10px;border-radius:50%;background:@folderGroup.FolderColor;flex-shrink:0;display:inline-block;"></span>
+                                            <span class="fw-semibold text-muted" style="font-size:.78rem;">@folderGroup.FolderName</span>
+                                        </div>
+                                        <!-- Annotations in this folder -->
+                                        <ul class="list-unstyled mb-2 ms-2">
+                                            @foreach (var ann in folderGroup.Annotations)
+                                            {
+                                                var canDelete = isAdmin || (isAuth && ann.UserId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value);
+                                                <li class="annotation-item mb-1" data-id="@ann.Id"
+                                                    style="border-left:2px solid @folderGroup.FolderColor;padding-left:6px;cursor:pointer;">
+                                                    <div class="annotation-collapsed d-flex justify-content-between align-items-center py-1">
+                                                        <span class="small fw-semibold text-truncate" style="max-width:160px;">
+                                                            @if (ann.PositionXEnd.HasValue)
+                                                            {
+                                                                <span class="badge me-1" style="background:@folderGroup.FolderColor;font-size:.6rem;color:white;">RANGE</span>
+                                                            }
+                                                            @ann.CreatedAt.ToString("MMM d")
+                                                        </span>
+                                                    </div>
+                                                    <div class="annotation-expanded">
+                                                        <p class="mb-1 mt-1" style="font-size:.88rem;white-space:pre-wrap;">@LinkifyContent(ann.Content)</p>
+                                                        @if (ann.AttachmentFileName is not null)
+                                                        {
+                                                            <div class="mb-1">
+                                                                <img src="@Model.ApiBase/api/scores/@Model.Score.Id/annotations/@ann.Id/attachment"
+                                                                     alt="Attachment" class="img-fluid rounded"
+                                                                     style="max-height:180px;cursor:pointer;"
+                                                                     onclick="window.open(this.src,'_blank')" />
+                                                            </div>
+                                                        }
+                                                        @if (canDelete)
+                                                        {
+                                                            <div class="d-flex justify-content-end mt-1">
+                                                                <button class="btn btn-sm btn-outline-danger delete-btn py-0"
+                                                                        style="font-size:.75rem;" data-id="@ann.Id">Delete</button>
+                                                            </div>
+                                                        }
+                                                    </div>
+                                                </li>
+                                            }
+                                        </ul>
                                     </div>
                                 }
-                                <div class="d-flex justify-content-end">
-                                    <button class="btn btn-sm btn-outline-danger delete-btn" data-id="@ann.Id">Delete</button>
-                                </div>
                             </div>
-                        </li>
+                        </div>
                     }
-                }
-            </ul>
+                </div>
+            }
         </div>
+
+        @if (!isAuth)
+        {
+            <div class="mt-3 text-center">
+                <a asp-page="/Auth/Login" class="btn btn-outline-primary btn-sm">Sign in to annotate</a>
+            </div>
+        }
     </div>
 </div>
 
@@ -194,15 +283,17 @@
     const scoreId  = @Model.Score.Id;
     const apiBase  = '@Model.ApiBase';
     const jwtToken = '@(Model.JwtToken ?? "")';
+    const isAuth   = @(isAuth ? "true" : "false");
 
     const container = document.getElementById('score-container');
     const img       = document.getElementById('score-image');
     const addPanel  = document.getElementById('add-form-panel');
     const preview   = document.getElementById('drag-preview');
+    const formHeader = document.getElementById('form-header');
 
-    // ── Expand / collapse list items ──────────────────────────────────
+    // ── Annotation expand/collapse ─────────────────────────────────────
     function expandItem(li) {
-        document.querySelectorAll('.annotation-list-item.is-expanded').forEach(el => {
+        document.querySelectorAll('.annotation-item.is-expanded').forEach(el => {
             if (el !== li) collapseItem(el);
         });
         li.classList.add('is-expanded');
@@ -215,8 +306,7 @@
         li.querySelector('.annotation-expanded').style.maxHeight = '0';
     }
 
-    // List item click
-    document.querySelectorAll('.annotation-list-item').forEach(li => {
+    document.querySelectorAll('.annotation-item').forEach(li => {
         li.addEventListener('click', function (e) {
             if (e.target.classList.contains('delete-btn')) return;
             this.classList.contains('is-expanded') ? collapseItem(this) : expandItem(this);
@@ -226,131 +316,165 @@
     // ── Pin / range click → expand matching list item ──────────────────
     function handleOverlayClick(e) {
         e.stopPropagation();
-        const li = document.querySelector(`.annotation-list-item[data-id="${this.dataset.id}"]`);
+        const li = document.querySelector(`.annotation-item[data-id="${this.dataset.id}"]`);
         if (!li) return;
-        addPanel.classList.add('d-none');
+        // Ensure the parent user accordion is open
+        const collapseEl = li.closest('.accordion-collapse');
+        if (collapseEl && !collapseEl.classList.contains('show'))
+            bootstrap.Collapse.getOrCreateInstance(collapseEl).show();
+        if (addPanel) addPanel.classList.add('d-none');
         expandItem(li);
-        li.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        setTimeout(() => li.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
     }
 
     document.querySelectorAll('.annotation-pin, .annotation-range').forEach(el => {
         el.addEventListener('click', handleOverlayClick);
     });
 
-    // ── Drag to place point or range annotation ────────────────────────
-    let isDragging = false;
-    let dragStart  = null;
-
-    function imgCoords(e) {
-        const rect = img.getBoundingClientRect();
-        return {
-            x: Math.max(0, Math.min(100, (e.clientX - rect.left) / rect.width  * 100)),
-            y: Math.max(0, Math.min(100, (e.clientY - rect.top)  / rect.height * 100))
-        };
+    // ── Folder color for form / drag preview ───────────────────────────
+    function hexToRgba(hex, alpha) {
+        hex = hex.replace('#', '');
+        if (hex.length !== 6) return `rgba(135,206,235,${alpha})`;
+        const r = parseInt(hex.slice(0,2), 16);
+        const g = parseInt(hex.slice(2,4), 16);
+        const b = parseInt(hex.slice(4,6), 16);
+        return `rgba(${r},${g},${b},${alpha})`;
     }
 
-    container.addEventListener('mousedown', function (e) {
-        if (e.target.classList.contains('annotation-pin') ||
-            e.target.classList.contains('annotation-range')) return;
-        if (e.button !== 0) return;
-        isDragging = true;
-        dragStart  = imgCoords(e);
-        preview.style.left   = dragStart.x + '%';
-        preview.style.top    = dragStart.y + '%';
-        preview.style.width  = '0';
-        preview.style.height = '0';
-        preview.style.display = 'block';
-        e.preventDefault();
-    });
-
-    container.addEventListener('mousemove', function (e) {
-        if (!isDragging) return;
-        const cur = imgCoords(e);
-        const minX = Math.min(dragStart.x, cur.x);
-        const minY = Math.min(dragStart.y, cur.y);
-        preview.style.left   = minX + '%';
-        preview.style.top    = minY + '%';
-        preview.style.width  = Math.abs(cur.x - dragStart.x) + '%';
-        preview.style.height = Math.abs(cur.y - dragStart.y) + '%';
-    });
-
-    function finishDrag(e) {
-        if (!isDragging) return;
-        isDragging = false;
-        preview.style.display = 'none';
-
-        const end     = imgCoords(e);
-        const isRange = Math.abs(end.x - dragStart.x) > 2 || Math.abs(end.y - dragStart.y) > 2;
-
-        document.getElementById('pos-x').value = dragStart.x.toFixed(2);
-        document.getElementById('pos-y').value = dragStart.y.toFixed(2);
-        document.getElementById('pos-x-end').value = isRange ? end.x.toFixed(2) : '';
-        document.getElementById('pos-y-end').value = isRange ? end.y.toFixed(2) : '';
-
-        document.getElementById('form-mode-label').textContent =
-            isRange ? 'Add Range Annotation' : 'Add Annotation';
-
-        document.querySelectorAll('.annotation-list-item.is-expanded').forEach(el => collapseItem(el));
-        addPanel.classList.remove('d-none');
-        document.getElementById('author-name').focus();
+    function setFormColor(hex) {
+        if (!preview) return;
+        preview.style.borderColor = hex;
+        preview.style.background  = hexToRgba(hex, 0.15);
+        if (formHeader) formHeader.style.backgroundColor = hex;
     }
 
-    container.addEventListener('mouseup', finishDrag);
-    document.addEventListener('mouseup', function (e) {
-        if (isDragging) {
+    const folderSelect = document.getElementById('folder-select');
+    if (folderSelect && folderSelect.tagName === 'SELECT') {
+        folderSelect.addEventListener('change', function () {
+            const opt = this.options[this.selectedIndex];
+            setFormColor(opt.dataset.color || '#87CEEB');
+        });
+        // init
+        const initOpt = folderSelect.options[folderSelect.selectedIndex];
+        if (initOpt) setFormColor(initOpt.dataset.color || '#87CEEB');
+    } else if (folderSelect) {
+        // hidden single-folder input
+        setFormColor(folderSelect.dataset.color || '#87CEEB');
+    }
+
+    // ── Drag to place annotation (auth only) ───────────────────────────
+    if (isAuth) {
+        let isDragging = false;
+        let dragStart  = null;
+
+        function imgCoords(e) {
+            const rect = img.getBoundingClientRect();
+            return {
+                x: Math.max(0, Math.min(100, (e.clientX - rect.left) / rect.width  * 100)),
+                y: Math.max(0, Math.min(100, (e.clientY - rect.top)  / rect.height * 100))
+            };
+        }
+
+        container.addEventListener('mousedown', function (e) {
+            if (e.target.classList.contains('annotation-pin') ||
+                e.target.classList.contains('annotation-range')) return;
+            if (e.button !== 0) return;
+            isDragging = true;
+            dragStart  = imgCoords(e);
+            preview.style.left   = dragStart.x + '%';
+            preview.style.top    = dragStart.y + '%';
+            preview.style.width  = '0';
+            preview.style.height = '0';
+            preview.style.display = 'block';
+            e.preventDefault();
+        });
+
+        container.addEventListener('mousemove', function (e) {
+            if (!isDragging) return;
+            const cur = imgCoords(e);
+            preview.style.left   = Math.min(dragStart.x, cur.x) + '%';
+            preview.style.top    = Math.min(dragStart.y, cur.y) + '%';
+            preview.style.width  = Math.abs(cur.x - dragStart.x) + '%';
+            preview.style.height = Math.abs(cur.y - dragStart.y) + '%';
+        });
+
+        function finishDrag(e) {
+            if (!isDragging) return;
             isDragging = false;
             preview.style.display = 'none';
+            const end     = imgCoords(e);
+            const isRange = Math.abs(end.x - dragStart.x) > 2 || Math.abs(end.y - dragStart.y) > 2;
+            document.getElementById('pos-x').value = dragStart.x.toFixed(2);
+            document.getElementById('pos-y').value = dragStart.y.toFixed(2);
+            document.getElementById('pos-x-end').value = isRange ? end.x.toFixed(2) : '';
+            document.getElementById('pos-y-end').value = isRange ? end.y.toFixed(2) : '';
+            document.getElementById('form-mode-label').textContent =
+                isRange ? 'Add Range Annotation' : 'Add Annotation';
+            document.querySelectorAll('.annotation-item.is-expanded').forEach(collapseItem);
+            addPanel.classList.remove('d-none');
+            document.getElementById('annotation-content').focus();
         }
-    });
 
-    document.getElementById('cancel-annotation').addEventListener('click', () => {
-        addPanel.classList.add('d-none');
-        document.getElementById('add-annotation-form').reset();
-    });
-
-    // ── Submit annotation ─────────────────────────────────────────────
-    document.getElementById('add-annotation-form').addEventListener('submit', async function (e) {
-        e.preventDefault();
-        const author  = document.getElementById('author-name').value.trim();
-        const content = document.getElementById('annotation-content').value.trim();
-        if (!author || !content) return;
-
-        const posXEnd = document.getElementById('pos-x-end').value;
-        const posYEnd = document.getElementById('pos-y-end').value;
-
-        const fd = new FormData();
-        fd.append('authorName', author);
-        fd.append('content',    content);
-        fd.append('positionX',  document.getElementById('pos-x').value);
-        fd.append('positionY',  document.getElementById('pos-y').value);
-        if (posXEnd) fd.append('positionXEnd', posXEnd);
-        if (posYEnd) fd.append('positionYEnd', posYEnd);
-        const file = document.getElementById('attachment-file').files[0];
-        if (file) fd.append('attachment', file);
-
-        const headers = jwtToken ? { 'Authorization': `Bearer ${jwtToken}` } : {};
-        const res = await fetch(`${apiBase}/api/scores/${scoreId}/annotations`, {
-            method: 'POST',
-            headers,
-            body: fd
+        container.addEventListener('mouseup', finishDrag);
+        document.addEventListener('mouseup', function () {
+            if (isDragging) { isDragging = false; preview.style.display = 'none'; }
         });
 
-        if (res.ok) { location.reload(); }
-        else { alert('Failed to save annotation. Please try again.'); }
-    });
+        document.getElementById('cancel-annotation').addEventListener('click', () => {
+            addPanel.classList.add('d-none');
+            document.getElementById('add-annotation-form').reset();
+        });
+
+        // ── Submit annotation ─────────────────────────────────────────
+        document.getElementById('add-annotation-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const content = document.getElementById('annotation-content').value.trim();
+            if (!content) return;
+
+            const posXEnd = document.getElementById('pos-x-end').value;
+            const posYEnd = document.getElementById('pos-y-end').value;
+
+            const fd = new FormData();
+            fd.append('content',    content);
+            fd.append('positionX',  document.getElementById('pos-x').value);
+            fd.append('positionY',  document.getElementById('pos-y').value);
+            if (posXEnd) fd.append('positionXEnd', posXEnd);
+            if (posYEnd) fd.append('positionYEnd', posYEnd);
+
+            const fSel = document.getElementById('folder-select');
+            if (fSel) {
+                const fid = fSel.tagName === 'SELECT'
+                    ? fSel.options[fSel.selectedIndex].value
+                    : fSel.value;
+                if (fid) fd.append('folderId', fid);
+            }
+
+            const file = document.getElementById('attachment-file').files[0];
+            if (file) fd.append('attachment', file);
+
+            const res = await fetch(`${apiBase}/api/scores/${scoreId}/annotations`, {
+                method: 'POST',
+                headers: jwtToken ? { 'Authorization': `Bearer ${jwtToken}` } : {},
+                body: fd
+            });
+
+            if (res.ok) { location.reload(); }
+            else { alert('Failed to save annotation. Please try again.'); }
+        });
+    }
 
     // ── Delete annotation ─────────────────────────────────────────────
-    document.getElementById('annotation-list').addEventListener('click', async function (e) {
-        const btn = e.target.closest('.delete-btn');
-        if (!btn) return;
-        if (!confirm('Delete this annotation?')) return;
-        const authHeaders = jwtToken ? { 'Authorization': `Bearer ${jwtToken}` } : {};
-        const res = await fetch(`${apiBase}/api/scores/${scoreId}/annotations/${btn.dataset.id}`, {
-            method: 'DELETE',
-            headers: authHeaders
+    document.querySelectorAll('.delete-btn').forEach(btn => {
+        btn.addEventListener('click', async function (e) {
+            e.stopPropagation();
+            if (!confirm('Delete this annotation?')) return;
+            const res = await fetch(`${apiBase}/api/scores/${scoreId}/annotations/${this.dataset.id}`, {
+                method: 'DELETE',
+                headers: jwtToken ? { 'Authorization': `Bearer ${jwtToken}` } : {}
+            });
+            if (res.ok) { location.reload(); }
+            else { alert('Failed to delete annotation.'); }
         });
-        if (res.ok) { location.reload(); }
-        else { alert('Failed to delete annotation.'); }
     });
 </script>
 }
