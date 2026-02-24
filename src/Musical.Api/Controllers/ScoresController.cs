@@ -107,18 +107,11 @@ public class ScoresController(MusicalDbContext db, IWebHostEnvironment env) : Co
     }
 
     [HttpDelete("{id}")]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id)
     {
-        var score = await db.Scores.Include(s => s.Folder).FirstOrDefaultAsync(s => s.Id == id);
+        var score = await db.Scores.FindAsync(id);
         if (score is null) return NotFound();
-
-        // Only admin or the folder owner can delete
-        if (!User.IsInRole("Admin"))
-        {
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (score.Folder?.UserId != userId) return Forbid();
-        }
 
         var filePath = Path.Combine(env.ContentRootPath, "uploads", score.ImageFileName);
         if (System.IO.File.Exists(filePath))
