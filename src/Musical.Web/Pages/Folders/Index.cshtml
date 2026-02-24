@@ -1,0 +1,179 @@
+@page
+@model Musical.Web.Pages.Folders.IndexModel
+@{
+    ViewData["Title"] = "My Folders | Study Sax";
+    bool isAdmin = User.IsInRole("Admin");
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="h2 mb-0">@(isAdmin ? "All Folders" : "My Folders")</h1>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#folderModal"
+            onclick="openCreate()">+ New Folder</button>
+</div>
+
+@if (Model.StatusMessage is not null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+@if (Model.ErrorMessage is not null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        @Model.ErrorMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!Model.Folders.Any())
+{
+    <div class="text-center py-5 text-muted">
+        <p class="fs-5">No folders yet.</p>
+        <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#folderModal"
+                onclick="openCreate()">Create your first folder</button>
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th style="width:40px;"></th>
+                    <th>Name</th>
+                    @if (isAdmin) { <th>Owner</th> }
+                    <th>Description</th>
+                    <th class="text-center">Scores</th>
+                    <th class="text-center">Visible</th>
+                    <th style="width:130px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var folder in Model.Folders)
+                {
+                    <tr>
+                        <td>
+                            <span style="width:18px;height:18px;border-radius:50%;background:@folder.Color;display:inline-block;"></span>
+                        </td>
+                        <td class="fw-semibold">@folder.Name</td>
+                        @if (isAdmin) { <td class="text-muted small">@folder.UserDisplayName</td> }
+                        <td class="text-muted small">@(folder.Description ?? "—")</td>
+                        <td class="text-center">@folder.ScoreCount</td>
+                        <td class="text-center">
+                            @if (folder.IsMasked)
+                            {
+                                <span class="badge bg-secondary">Hidden</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-success">Public</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-secondary me-1"
+                                    data-bs-toggle="modal" data-bs-target="#folderModal"
+                                    onclick="openEdit(@folder.Id, @Json.Serialize(folder.Name), @Json.Serialize(folder.Description ?? ""), @Json.Serialize(folder.Color), @Json.Serialize(folder.IsMasked))">
+                                Edit
+                            </button>
+                            <form method="post" asp-page-handler="Delete" asp-route-id="@folder.Id"
+                                  style="display:inline;"
+                                  onsubmit="return confirm('Delete folder &quot;@folder.Name.Replace("'", "\\'")&quot;?\n\nScores in this folder will become uncategorized.');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<!-- Create / Edit Modal -->
+<div class="modal fade" id="folderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="folderModalTitle">New Folder</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="folderForm" method="post">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Name <span class="text-danger">*</span></label>
+                        <input id="inputName" name="FolderName" class="form-control" maxlength="100" required />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Description</label>
+                        <textarea id="inputDescription" name="FolderDescription" class="form-control" rows="2" maxlength="500"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Color</label>
+                        <div class="d-flex align-items-center gap-3">
+                            <input id="inputColor" name="FolderColor" type="color" class="form-control form-control-color"
+                                   value="#87CEEB" title="Choose folder color" />
+                            <div class="d-flex gap-2 flex-wrap">
+                                @foreach (var c in new[] { "#87CEEB","#90EE90","#FFB6C1","#FFD700","#DDA0DD","#FFA07A","#98FB98","#B0C4DE","#F0E68C","#E6E6FA" })
+                                {
+                                    <span class="color-swatch" style="width:24px;height:24px;border-radius:50%;background:@c;cursor:pointer;border:2px solid transparent;"
+                                          onclick="pickColor('@c')" title="@c"></span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-1">
+                        <div class="form-check">
+                            <input id="inputMasked" name="FolderIsMasked" type="checkbox" class="form-check-input" value="true" />
+                            <input name="FolderIsMasked" type="hidden" value="false" />
+                            <label class="form-check-label" for="inputMasked">
+                                Hide from public browse <span class="text-muted small">(only you can see scores in this folder)</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="folderSubmitBtn">Create</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function openCreate() {
+        document.getElementById('folderModalTitle').textContent = 'New Folder';
+        document.getElementById('folderSubmitBtn').textContent = 'Create';
+        document.getElementById('folderForm').action = '?handler=Create';
+        document.getElementById('inputName').value = '';
+        document.getElementById('inputDescription').value = '';
+        document.getElementById('inputColor').value = '#87CEEB';
+        document.getElementById('inputMasked').checked = false;
+    }
+
+    function openEdit(id, name, description, color, isMasked) {
+        document.getElementById('folderModalTitle').textContent = 'Edit Folder';
+        document.getElementById('folderSubmitBtn').textContent = 'Save';
+        document.getElementById('folderForm').action = '?handler=Update&id=' + id;
+        document.getElementById('inputName').value = name;
+        document.getElementById('inputDescription').value = description;
+        document.getElementById('inputColor').value = color;
+        document.getElementById('inputMasked').checked = isMasked;
+    }
+
+    function pickColor(hex) {
+        document.getElementById('inputColor').value = hex;
+        document.querySelectorAll('.color-swatch').forEach(s => {
+            s.style.borderColor = s.title === hex ? '#333' : 'transparent';
+        });
+    }
+
+    // Sync swatch highlight when color picker changes
+    document.getElementById('inputColor').addEventListener('input', function () {
+        document.querySelectorAll('.color-swatch').forEach(s => {
+            s.style.borderColor = s.title.toLowerCase() === this.value.toLowerCase() ? '#333' : 'transparent';
+        });
+    });
+</script>
+}

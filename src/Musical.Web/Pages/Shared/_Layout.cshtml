@@ -29,6 +29,12 @@
                         <li class="nav-item">
                             <a class="nav-link fw-semibold" style="color:#1a1a1a;" asp-area="" asp-page="/Scores/Upload">Upload Score</a>
                         </li>
+                        @if (User.Identity?.IsAuthenticated == true)
+                        {
+                            <li class="nav-item">
+                                <a class="nav-link fw-semibold" style="color:#1a1a1a;" asp-area="" asp-page="/Folders/Index">My Folders</a>
+                            </li>
+                        }
                     </ul>
                     <ul class="navbar-nav ms-auto">
                         <li class="nav-item">
