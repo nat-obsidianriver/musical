@@ -96,6 +96,7 @@
                     var height = Math.Abs(ann.PositionYEnd.Value - ann.PositionY);
                     <div class="annotation-range"
                          data-id="@ann.Id"
+                         data-user-key="@(ann.UserId ?? $"anon:{ann.AuthorName}")"
                          style="left:@(Fmt(left))%;top:@(Fmt(top))%;width:@(Fmt(width))%;height:@(Fmt(height))%;position:absolute;background:@HexToRgba(color, 0.20);border:2px solid @HexToRgba(color, 0.80);cursor:pointer;box-sizing:border-box;"
                          title="@ann.AuthorName"></div>
                 }
@@ -103,6 +104,7 @@
                 {
                     <div class="annotation-pin"
                          data-id="@ann.Id"
+                         data-user-key="@(ann.UserId ?? $"anon:{ann.AuthorName}")"
                          style="left:@(Fmt(ann.PositionX))%;top:@(Fmt(ann.PositionY))%;position:absolute;transform:translate(-50%,-50%);width:22px;height:22px;border-radius:50%;background:@HexToRgba(color, 0.90);border:2px solid white;cursor:pointer;display:flex;align-items:center;justify-content:center;color:white;font-size:10px;font-weight:bold;box-shadow:0 1px 3px rgba(0,0,0,.35);"
                          title="@ann.AuthorName">
                         &#9670;
@@ -205,7 +207,8 @@
                             <h2 class="accordion-header">
                                 <button class="accordion-button py-2 px-3 fw-semibold small bg-light"
                                         type="button" data-bs-toggle="collapse"
-                                        data-bs-target="#@collapseId">
+                                        data-bs-target="#@collapseId"
+                                        data-user-key="@(userGroup.UserId ?? $"anon:{userGroup.AuthorName}")">
                                     @if (userGroup.UserHeadshotFileName is not null && userGroup.UserId is not null)
                                     {
                                         <img src="@Model.ApiBase/api/users/@userGroup.UserId/headshot"
@@ -230,8 +233,9 @@
                                 {
                                     <div class="px-2 pt-2">
                                         <!-- Folder label -->
-                                        <div class="d-flex align-items-center gap-2 px-1 py-1 mb-1"
-                                             style="border-left:3px solid @folderGroup.FolderColor;">
+                                        <div class="d-flex align-items-center gap-2 px-1 py-1 mb-1 folder-header"
+                                             data-user-key="@(userGroup.UserId ?? $"anon:{userGroup.AuthorName}")"
+                                             style="border-left:3px solid @folderGroup.FolderColor;cursor:pointer;">
                                             <span style="width:10px;height:10px;border-radius:50%;background:@folderGroup.FolderColor;flex-shrink:0;display:inline-block;"></span>
                                             <span class="fw-semibold text-muted" style="font-size:.78rem;">@folderGroup.FolderName</span>
                                         </div>
@@ -241,6 +245,7 @@
                                             {
                                                 var canDelete = isAdmin || (isAuth && ann.UserId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value);
                                                 <li class="annotation-item mb-1" data-id="@ann.Id"
+                                                    data-user-key="@(ann.UserId ?? $"anon:{ann.AuthorName}")"
                                                     style="border-left:2px solid @folderGroup.FolderColor;padding-left:6px;cursor:pointer;">
                                                     <div class="annotation-collapsed d-flex justify-content-between align-items-center py-1">
                                                         <span class="small fw-semibold text-truncate" style="max-width:160px;">
@@ -323,7 +328,55 @@
         li.addEventListener('click', function (e) {
             if (e.target.classList.contains('delete-btn')) return;
             this.classList.contains('is-expanded') ? collapseItem(this) : expandItem(this);
+            setEmphasis(this.dataset.userKey);
         });
+    });
+
+    // ── Overlay emphasis ───────────────────────────────────────────────
+    let emphasizedUserKey = null;
+
+    function setEmphasis(userKey) {
+        if (emphasizedUserKey === userKey) { clearEmphasis(); return; }
+        emphasizedUserKey = userKey;
+        document.querySelectorAll('.annotation-pin, .annotation-range').forEach(el => {
+            if (el.dataset.userKey === userKey) {
+                el.classList.add('overlay-emphasized');
+                el.classList.remove('overlay-dimmed');
+            } else {
+                el.classList.add('overlay-dimmed');
+                el.classList.remove('overlay-emphasized');
+            }
+        });
+    }
+
+    function clearEmphasis() {
+        emphasizedUserKey = null;
+        document.querySelectorAll('.annotation-pin, .annotation-range').forEach(el => {
+            el.classList.remove('overlay-emphasized', 'overlay-dimmed');
+        });
+    }
+
+    // Accordion button → toggle emphasis for that contributor
+    document.querySelectorAll('.accordion-button[data-user-key]').forEach(btn => {
+        btn.addEventListener('click', function () {
+            setEmphasis(this.dataset.userKey);
+        });
+    });
+
+    // Folder header → set emphasis for that contributor
+    document.querySelectorAll('.folder-header').forEach(div => {
+        div.addEventListener('click', function (e) {
+            e.stopPropagation();
+            setEmphasis(this.dataset.userKey);
+        });
+    });
+
+    // Score background click → clear emphasis
+    container.addEventListener('click', function (e) {
+        if (!e.target.classList.contains('annotation-pin') &&
+            !e.target.classList.contains('annotation-range')) {
+            clearEmphasis();
+        }
     });
 
     // ── Pin / range click → expand matching list item ──────────────────
@@ -337,6 +390,7 @@
             bootstrap.Collapse.getOrCreateInstance(collapseEl).show();
         if (addPanel) addPanel.classList.add('d-none');
         expandItem(li);
+        setEmphasis(this.dataset.userKey);
         setTimeout(() => li.scrollIntoView({ behavior: 'smooth', block: 'nearest' }), 150);
     }
 

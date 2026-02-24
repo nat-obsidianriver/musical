@@ -51,6 +51,25 @@ body {
     transform: translate(-50%, -50%) scale(1.25) !important;
 }
 
+/* ── Overlay emphasis ────────────────────────────────── */
+.annotation-pin, .annotation-range {
+    transition: opacity .2s ease;
+}
+
+.overlay-dimmed {
+    opacity: 0.12 !important;
+}
+
+.overlay-emphasized {
+    opacity: 1 !important;
+    box-shadow: 0 0 0 3px white !important;
+}
+
+.folder-header:hover {
+    background-color: rgba(0,0,0,.04);
+    border-radius: 3px;
+}
+
 /* ── Forms ───────────────────────────────────────────── */
 .form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
   color: var(--bs-secondary-color);
