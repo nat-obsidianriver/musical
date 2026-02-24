@@ -52,7 +52,9 @@ public record AnnotationViewModel(
     string? UserId,
     int? FolderId,
     string? FolderName,
-    string? FolderColor);
+    string? FolderColor,
+    string? UserBio,
+    string? UserHeadshotFileName);
 
 public record AnnotationFolderGroup(
     int? FolderId,
@@ -63,4 +65,6 @@ public record AnnotationFolderGroup(
 public record AnnotationUserGroup(
     string AuthorName,
     string? UserId,
+    string? UserBio,
+    string? UserHeadshotFileName,
     List<AnnotationFolderGroup> Folders);

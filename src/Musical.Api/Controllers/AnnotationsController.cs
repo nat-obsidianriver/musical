@@ -24,6 +24,8 @@ public class AnnotationsController(MusicalDbContext db, IWebHostEnvironment env)
                 where a.ScoreId == scoreId
                 join f in db.Folders on a.FolderId equals f.Id into fj
                 from f in fj.DefaultIfEmpty()
+                join u in db.Users on a.UserId equals u.Id into uj
+                from u in uj.DefaultIfEmpty()
                 orderby a.CreatedAt
                 select new AnnotationDto(
                     a.Id, a.ScoreId, a.AuthorName, a.Content,
@@ -31,7 +33,9 @@ public class AnnotationsController(MusicalDbContext db, IWebHostEnvironment env)
                     a.AttachmentFileName, a.CreatedAt,
                     a.UserId, a.FolderId,
                     f != null ? f.Name : null,
-                    f != null ? f.Color : null);
+                    f != null ? f.Color : null,
+                    u != null ? u.Bio : null,
+                    u != null ? u.HeadshotFileName : null);
 
         return Ok(await q.ToListAsync());
     }
@@ -116,7 +120,8 @@ public class AnnotationsController(MusicalDbContext db, IWebHostEnvironment env)
                 annotation.Content, annotation.PositionX, annotation.PositionY,
                 annotation.PositionXEnd, annotation.PositionYEnd,
                 annotation.AttachmentFileName, annotation.CreatedAt,
-                annotation.UserId, annotation.FolderId, folderName, folderColor));
+                annotation.UserId, annotation.FolderId, folderName, folderColor,
+                null, null));
     }
 
     [HttpGet("{id}/attachment")]

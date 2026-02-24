@@ -206,6 +206,13 @@
                                 <button class="accordion-button py-2 px-3 fw-semibold small bg-light"
                                         type="button" data-bs-toggle="collapse"
                                         data-bs-target="#@collapseId">
+                                    @if (userGroup.UserHeadshotFileName is not null && userGroup.UserId is not null)
+                                    {
+                                        <img src="@Model.ApiBase/api/users/@userGroup.UserId/headshot"
+                                             alt="@userGroup.AuthorName"
+                                             class="rounded-circle me-2"
+                                             style="width:28px;height:28px;object-fit:cover;flex-shrink:0;" />
+                                    }
                                     @userGroup.AuthorName
                                     <span class="badge bg-secondary ms-2" style="font-size:.7rem;">
                                         @userGroup.Folders.Sum(f => f.Annotations.Count)
@@ -213,6 +220,12 @@
                                 </button>
                             </h2>
                             <div id="@collapseId" class="accordion-collapse collapse show">
+                                @if (!string.IsNullOrWhiteSpace(userGroup.UserBio))
+                                {
+                                    <div class="px-3 pt-2 pb-1 text-muted" style="font-size:.82rem;border-bottom:1px solid #eee;">
+                                        @userGroup.UserBio
+                                    </div>
+                                }
                                 @foreach (var folderGroup in userGroup.Folders)
                                 {
                                     <div class="px-2 pt-2">

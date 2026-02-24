@@ -46,6 +46,8 @@ public class DetailModel(IHttpClientFactory httpClientFactory, IConfiguration co
             .Select(g => new AnnotationUserGroup(
                 g.Key.AuthorName,
                 g.First().UserId,
+                g.First().UserBio,
+                g.First().UserHeadshotFileName,
                 g.GroupBy(a => new { a.FolderId, a.FolderName, a.FolderColor })
                  .Select(fg => new AnnotationFolderGroup(
                      fg.Key.FolderId,

@@ -14,7 +14,9 @@ public record AnnotationDto(
     string? UserId,
     int? FolderId,
     string? FolderName,
-    string? FolderColor);
+    string? FolderColor,
+    string? UserBio,
+    string? UserHeadshotFileName);
 
 public class CreateAnnotationForm
 {
