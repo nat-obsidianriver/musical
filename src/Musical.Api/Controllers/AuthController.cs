@@ -17,7 +17,8 @@ namespace Musical.Api.Controllers;
 public class AuthController(
     UserManager<ApplicationUser> userManager,
     MusicalDbContext db,
-    IConfiguration config) : ControllerBase
+    IConfiguration config,
+    IWebHostEnvironment env) : ControllerBase
 {
     [HttpPost("register")]
     public async Task<ActionResult<AuthResponse>> Register(RegisterRequest request)
@@ -76,6 +77,75 @@ public class AuthController(
         var role = roles.Contains("Admin") ? "Admin" : "User";
 
         return Ok(BuildAuthResponse(user, role));
+    }
+
+    [HttpGet("profile")]
+    [Authorize]
+    public async Task<ActionResult<UserProfileDto>> GetProfile()
+    {
+        var user = await userManager.FindByIdAsync(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (user is null) return Unauthorized();
+
+        return Ok(new UserProfileDto(user.Id, user.DisplayName, user.Email ?? "", user.Bio, user.HeadshotFileName));
+    }
+
+    [HttpPut("profile")]
+    [Authorize]
+    [Consumes("multipart/form-data")]
+    public async Task<ActionResult<UserProfileDto>> UpdateProfile([FromForm] UpdateProfileForm form)
+    {
+        var user = await userManager.FindByIdAsync(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+        if (user is null) return Unauthorized();
+
+        user.Bio = form.Bio?.Trim();
+
+        if (form.Headshot is { Length: > 0 })
+        {
+            var ext = Path.GetExtension(form.Headshot.FileName).ToLowerInvariant();
+            string[] allowed = [".jpg", ".jpeg", ".png", ".gif", ".webp"];
+            if (!allowed.Contains(ext))
+                return BadRequest("Headshot must be an image (jpg, png, gif, webp).");
+
+            var uploadsDir = Path.Combine(env.ContentRootPath, "uploads");
+            Directory.CreateDirectory(uploadsDir);
+
+            // Delete old headshot if present
+            if (user.HeadshotFileName is not null)
+            {
+                var old = Path.Combine(uploadsDir, user.HeadshotFileName);
+                if (System.IO.File.Exists(old)) System.IO.File.Delete(old);
+            }
+
+            user.HeadshotFileName = $"headshot_{user.Id}{ext}";
+            var path = Path.Combine(uploadsDir, user.HeadshotFileName);
+            await using var stream = System.IO.File.Create(path);
+            await form.Headshot.CopyToAsync(stream);
+        }
+
+        await userManager.UpdateAsync(user);
+        return Ok(new UserProfileDto(user.Id, user.DisplayName, user.Email ?? "", user.Bio, user.HeadshotFileName));
+    }
+
+    [HttpGet("/api/users/{userId}/headshot")]
+    public async Task<IActionResult> GetHeadshot(string userId)
+    {
+        var user = await userManager.FindByIdAsync(userId);
+        if (user?.HeadshotFileName is null) return NotFound();
+
+        var path = Path.Combine(env.ContentRootPath, "uploads", user.HeadshotFileName);
+        if (!System.IO.File.Exists(path)) return NotFound();
+
+        var ext = Path.GetExtension(user.HeadshotFileName).TrimStart('.').ToLowerInvariant();
+        var contentType = ext switch
+        {
+            "jpg" or "jpeg" => "image/jpeg",
+            "png"  => "image/png",
+            "gif"  => "image/gif",
+            "webp" => "image/webp",
+            _      => "application/octet-stream"
+        };
+
+        return PhysicalFile(path, contentType);
     }
 
     private AuthResponse BuildAuthResponse(ApplicationUser user, string role)

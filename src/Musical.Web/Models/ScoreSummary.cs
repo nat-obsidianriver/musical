@@ -19,7 +19,11 @@ public record ScoreSummary(
     int AnnotationCount,
     int? FolderId,
     string? FolderName,
-    string? FolderColor);
+    string? FolderColor,
+    string? FolderUserId,
+    string? FolderUserDisplayName,
+    string? FolderUserBio,
+    string? FolderUserHeadshotFileName);
 
 public record FolderSummary(
     int Id,
@@ -29,6 +33,8 @@ public record FolderSummary(
     bool IsMasked,
     string UserId,
     string UserDisplayName,
+    string? UserBio,
+    string? UserHeadshotFileName,
     int ScoreCount,
     DateTime CreatedAt);
 

@@ -1,0 +1,67 @@
+@page
+@model Musical.Web.Pages.Profile.IndexModel
+@{
+    ViewData["Title"] = "My Profile | Study Sax";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <h1 class="h3 mb-4">My Profile</h1>
+
+        @if (Model.StatusMessage is not null)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                @Model.StatusMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        }
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-body d-flex align-items-center gap-4 p-4">
+                @if (Model.Profile?.HeadshotFileName is not null)
+                {
+                    <img src="@Model.ApiBase/api/users/@Model.Profile.UserId/headshot"
+                         alt="Headshot"
+                         class="rounded-circle"
+                         style="width:90px;height:90px;object-fit:cover;flex-shrink:0;" />
+                }
+                else
+                {
+                    <div class="rounded-circle bg-secondary d-flex align-items-center justify-content-center flex-shrink-0"
+                         style="width:90px;height:90px;">
+                        <span class="text-white fs-2">@(Model.Profile?.DisplayName?.Substring(0, 1).ToUpper())</span>
+                    </div>
+                }
+                <div>
+                    <h4 class="mb-1">@Model.Profile?.DisplayName</h4>
+                    <div class="text-muted small">@Model.Profile?.Email</div>
+                    @if (!string.IsNullOrWhiteSpace(Model.Profile?.Bio))
+                    {
+                        <p class="mt-2 mb-0">@Model.Profile.Bio</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header fw-semibold">Edit Profile</div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label asp-for="Bio" class="form-label">Bio</label>
+                        <textarea asp-for="Bio" class="form-control" rows="4"
+                                  placeholder="Tell others about yourself..."></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Headshot" class="form-label">Headshot photo</label>
+                        <input asp-for="Headshot" type="file" class="form-control"
+                               accept=".jpg,.jpeg,.png,.gif,.webp" />
+                        <div class="form-text">JPG, PNG, GIF, or WebP. Replaces any existing headshot.</div>
+                    </div>
+                    <div asp-validation-summary="All" class="text-danger mb-2"></div>
+                    <button type="submit" class="btn btn-primary">Save changes</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

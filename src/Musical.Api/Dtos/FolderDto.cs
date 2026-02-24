@@ -8,6 +8,8 @@ public record FolderDto(
     bool IsMasked,
     string UserId,
     string UserDisplayName,
+    string? UserBio,
+    string? UserHeadshotFileName,
     int ScoreCount,
     DateTime CreatedAt);
 

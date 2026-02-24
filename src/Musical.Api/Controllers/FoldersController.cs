@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Musical.Api.Data;
 using Musical.Api.Dtos;
+using Musical.Api.Models;
 using Musical.Core.Models;
 
 namespace Musical.Api.Controllers;
@@ -25,24 +26,36 @@ public class FoldersController(MusicalDbContext db) : ControllerBase
 
         return await query
             .OrderBy(f => f.Name)
-            .Select(f => new FolderDto(
-                f.Id, f.Name, f.Description, f.Color, f.IsMasked,
-                f.UserId, f.UserDisplayName,
-                f.Scores.Count, f.CreatedAt))
+            .Join(db.Users,
+                f => f.UserId,
+                u => u.Id,
+                (f, u) => new FolderDto(
+                    f.Id, f.Name, f.Description, f.Color, f.IsMasked,
+                    f.UserId, f.UserDisplayName,
+                    u.Bio, u.HeadshotFileName,
+                    f.Scores.Count, f.CreatedAt))
             .ToListAsync();
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<FolderDto>> GetById(int id)
     {
-        var folder = await db.Folders.Include(f => f.Scores)
-            .FirstOrDefaultAsync(f => f.Id == id);
-        if (folder is null) return NotFound();
-        if (!IsAdmin && folder.UserId != UserId) return Forbid();
+        var result = await db.Folders
+            .Where(f => f.Id == id)
+            .Join(db.Users,
+                f => f.UserId,
+                u => u.Id,
+                (f, u) => new { f, u })
+            .FirstOrDefaultAsync();
 
-        return new FolderDto(folder.Id, folder.Name, folder.Description, folder.Color,
-            folder.IsMasked, folder.UserId, folder.UserDisplayName,
-            folder.Scores.Count, folder.CreatedAt);
+        if (result is null) return NotFound();
+        if (!IsAdmin && result.f.UserId != UserId) return Forbid();
+
+        var f = result.f;
+        var u = result.u;
+        return new FolderDto(f.Id, f.Name, f.Description, f.Color, f.IsMasked,
+            f.UserId, f.UserDisplayName, u.Bio, u.HeadshotFileName,
+            f.Scores.Count, f.CreatedAt);
     }
 
     [HttpPost]
@@ -64,29 +77,35 @@ public class FoldersController(MusicalDbContext db) : ControllerBase
         db.Folders.Add(folder);
         await db.SaveChangesAsync();
 
+        var user = await db.Users.FindAsync(UserId);
         return CreatedAtAction(nameof(GetById), new { id = folder.Id },
             new FolderDto(folder.Id, folder.Name, folder.Description, folder.Color,
-                folder.IsMasked, folder.UserId, folder.UserDisplayName, 0, folder.CreatedAt));
+                folder.IsMasked, folder.UserId, folder.UserDisplayName,
+                user?.Bio, user?.HeadshotFileName, 0, folder.CreatedAt));
     }
 
     [HttpPut("{id}")]
     public async Task<ActionResult<FolderDto>> Update(int id, UpdateFolderRequest request)
     {
-        var folder = await db.Folders.Include(f => f.Scores)
-            .FirstOrDefaultAsync(f => f.Id == id);
-        if (folder is null) return NotFound();
-        if (!IsAdmin && folder.UserId != UserId) return Forbid();
+        var result = await db.Folders
+            .Where(f => f.Id == id)
+            .Join(db.Users, f => f.UserId, u => u.Id, (f, u) => new { f, u })
+            .FirstOrDefaultAsync();
 
-        folder.Name        = request.Name.Trim();
-        folder.Description = request.Description?.Trim();
-        folder.Color       = string.IsNullOrWhiteSpace(request.Color) ? folder.Color : request.Color;
-        folder.IsMasked    = request.IsMasked;
+        if (result is null) return NotFound();
+        if (!IsAdmin && result.f.UserId != UserId) return Forbid();
+
+        result.f.Name        = request.Name.Trim();
+        result.f.Description = request.Description?.Trim();
+        result.f.Color       = string.IsNullOrWhiteSpace(request.Color) ? result.f.Color : request.Color;
+        result.f.IsMasked    = request.IsMasked;
 
         await db.SaveChangesAsync();
 
-        return new FolderDto(folder.Id, folder.Name, folder.Description, folder.Color,
-            folder.IsMasked, folder.UserId, folder.UserDisplayName,
-            folder.Scores.Count, folder.CreatedAt);
+        return new FolderDto(result.f.Id, result.f.Name, result.f.Description, result.f.Color,
+            result.f.IsMasked, result.f.UserId, result.f.UserDisplayName,
+            result.u.Bio, result.u.HeadshotFileName,
+            result.f.Scores.Count, result.f.CreatedAt);
     }
 
     [HttpDelete("{id}")]

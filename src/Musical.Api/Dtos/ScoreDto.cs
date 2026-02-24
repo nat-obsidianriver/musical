@@ -10,7 +10,11 @@ public record ScoreDto(
     int AnnotationCount,
     int? FolderId,
     string? FolderName,
-    string? FolderColor);
+    string? FolderColor,
+    string? FolderUserId,
+    string? FolderUserDisplayName,
+    string? FolderUserBio,
+    string? FolderUserHeadshotFileName);
 
 public record CreateScoreRequest(
     string Title,

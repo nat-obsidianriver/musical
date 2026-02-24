@@ -19,21 +19,26 @@ public class ScoresController(MusicalDbContext db, IWebHostEnvironment env) : Co
     [HttpGet]
     public async Task<IEnumerable<ScoreDto>> GetAll()
     {
-        var query = db.Scores.Include(s => s.Folder).AsQueryable();
-
-        // Non-admins don't see scores in masked folders
-        if (!IsAdmin)
-            query = query.Where(s => s.Folder == null || !s.Folder.IsMasked);
-
-        return await query
-            .OrderByDescending(s => s.UploadedAt)
-            .Select(s => new ScoreDto(
-                s.Id, s.Title, s.Composer, s.Description,
-                s.ImageFileName, s.UploadedAt,
-                s.Annotations.Count,
-                s.FolderId, s.Folder != null ? s.Folder.Name : null,
-                s.Folder != null ? s.Folder.Color : null))
-            .ToListAsync();
+        var isAdmin = IsAdmin;
+        var q = from s in db.Scores
+                join f in db.Folders on s.FolderId equals f.Id into fj
+                from f in fj.DefaultIfEmpty()
+                join u in db.Users on f.UserId equals u.Id into uj
+                from u in uj.DefaultIfEmpty()
+                where isAdmin || f == null || !f.IsMasked
+                orderby s.UploadedAt descending
+                select new ScoreDto(
+                    s.Id, s.Title, s.Composer, s.Description,
+                    s.ImageFileName, s.UploadedAt,
+                    s.Annotations.Count(),
+                    s.FolderId,
+                    f != null ? f.Name : null,
+                    f != null ? f.Color : null,
+                    f != null ? f.UserId : null,
+                    f != null ? f.UserDisplayName : null,
+                    u != null ? u.Bio : null,
+                    u != null ? u.HeadshotFileName : null);
+        return await q.ToListAsync();
     }
 
     [HttpGet("{id}")]
@@ -50,7 +55,8 @@ public class ScoresController(MusicalDbContext db, IWebHostEnvironment env) : Co
         return new ScoreDto(
             score.Id, score.Title, score.Composer, score.Description,
             score.ImageFileName, score.UploadedAt, score.Annotations.Count,
-            score.FolderId, score.Folder?.Name, score.Folder?.Color);
+            score.FolderId, score.Folder?.Name, score.Folder?.Color,
+            score.Folder?.UserId, score.Folder?.UserDisplayName, null, null);
     }
 
     [HttpPost]
@@ -103,7 +109,8 @@ public class ScoresController(MusicalDbContext db, IWebHostEnvironment env) : Co
         return CreatedAtAction(nameof(GetById), new { id = score.Id },
             new ScoreDto(score.Id, score.Title, score.Composer, score.Description,
                 score.ImageFileName, score.UploadedAt, 0,
-                score.FolderId, score.Folder?.Name, score.Folder?.Color));
+                score.FolderId, score.Folder?.Name, score.Folder?.Color,
+                score.Folder?.UserId, score.Folder?.UserDisplayName, null, null));
     }
 
     [HttpDelete("{id}")]

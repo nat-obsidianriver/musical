@@ -3,7 +3,7 @@
 @{
     ViewData["Title"] = "Browse Scores | Study Sax";
     var grouped = Model.Scores
-        .GroupBy(s => new { s.FolderId, s.FolderName, s.FolderColor })
+        .GroupBy(s => new { s.FolderId, s.FolderName, s.FolderColor, s.FolderUserId, s.FolderUserDisplayName, s.FolderUserBio, s.FolderUserHeadshotFileName })
         .OrderBy(g => g.Key.FolderName ?? "zzz");
 }
 
@@ -37,10 +37,34 @@ else
         <div class="mb-5">
             @if (group.Key.FolderName is not null)
             {
-                <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
-                    <span style="width:14px;height:14px;border-radius:50%;background:@folderColor;display:inline-block;flex-shrink:0;"></span>
-                    <h2 class="h5 mb-0 fw-semibold">@group.Key.FolderName</h2>
-                    <span class="text-muted small">(@group.Count() score@(group.Count() == 1 ? "" : "s"))</span>
+                <div class="mb-3 pb-2 border-bottom">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span style="width:14px;height:14px;border-radius:50%;background:@folderColor;display:inline-block;flex-shrink:0;"></span>
+                        <h2 class="h5 mb-0 fw-semibold">@group.Key.FolderName</h2>
+                        <span class="text-muted small">(@group.Count() score@(group.Count() == 1 ? "" : "s"))</span>
+                    </div>
+                    @if (group.Key.FolderUserId is not null && (group.Key.FolderUserHeadshotFileName is not null || !string.IsNullOrWhiteSpace(group.Key.FolderUserBio) || group.Key.FolderUserDisplayName is not null))
+                    {
+                        <div class="d-flex align-items-center gap-3 mt-2">
+                            @if (group.Key.FolderUserHeadshotFileName is not null)
+                            {
+                                <img src="@Model.ApiBase/api/users/@group.Key.FolderUserId/headshot"
+                                     alt="@group.Key.FolderUserDisplayName"
+                                     class="rounded-circle"
+                                     style="width:48px;height:48px;object-fit:cover;flex-shrink:0;" />
+                            }
+                            <div>
+                                @if (group.Key.FolderUserDisplayName is not null)
+                                {
+                                    <div class="fw-semibold small">@group.Key.FolderUserDisplayName</div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(group.Key.FolderUserBio))
+                                {
+                                    <div class="text-muted small">@group.Key.FolderUserBio</div>
+                                }
+                            </div>
+                        </div>
+                    }
                 </div>
             }
             else
