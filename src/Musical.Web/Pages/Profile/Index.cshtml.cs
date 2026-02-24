@@ -1,9 +1,7 @@
 using System.Net.Http.Headers;
-using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using Musical.Web.Models;
 
 namespace Musical.Web.Pages.Profile;
 
@@ -25,11 +23,14 @@ public class IndexModel(IHttpClientFactory httpClientFactory, IConfiguration con
     {
         ApiBase = config["ApiBaseUrl"] ?? "https://localhost:7200";
         var client = httpClientFactory.CreateClient("MusicalApi");
-        var dto = await client.GetFromJsonAsync<UserProfileViewModel>("api/auth/profile");
-        if (dto is null) return RedirectToPage("/Auth/Login");
 
-        Profile = dto;
-        Bio = dto.Bio;
+        var response = await client.GetAsync("api/auth/profile");
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            return RedirectToPage("/Auth/Login");
+
+        response.EnsureSuccessStatusCode();
+        Profile = (await response.Content.ReadFromJsonAsync<UserProfileViewModel>())!;
+        Bio = Profile.Bio;
         return Page();
     }
 
@@ -50,11 +51,18 @@ public class IndexModel(IHttpClientFactory httpClientFactory, IConfiguration con
         }
 
         var response = await client.PutAsync("api/auth/profile", form);
+        if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            return RedirectToPage("/Auth/Login");
+
         if (!response.IsSuccessStatusCode)
         {
             ModelState.AddModelError("", "Failed to update profile.");
-            var dto = await client.GetFromJsonAsync<UserProfileViewModel>("api/auth/profile");
-            Profile = dto ?? new UserProfileViewModel("", "", "", null, null);
+            // Re-fetch profile for display
+            var getResp = await client.GetAsync("api/auth/profile");
+            if (getResp.IsSuccessStatusCode)
+                Profile = (await getResp.Content.ReadFromJsonAsync<UserProfileViewModel>())!;
+            else
+                Profile = new UserProfileViewModel("", User.Identity?.Name ?? "", "", null, null);
             return Page();
         }
 
