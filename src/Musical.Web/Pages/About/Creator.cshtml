@@ -1,0 +1,29 @@
+@page
+@model Musical.Web.Pages.About.CreatorModel
+@{
+    ViewData["Title"] = "About the Creator";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8">
+
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a asp-page="/About">About StudySax</a></li>
+                <li class="breadcrumb-item active" aria-current="page">About the Creator</li>
+            </ol>
+        </nav>
+
+        <h1 class="h2 mb-4">About the Creator</h1>
+
+        <p class="lead text-muted fst-italic">
+            Creator bio coming soon.
+        </p>
+
+        <div class="mt-5">
+            <a asp-page="/About" class="btn btn-outline-secondary">← Back to About</a>
+            <a asp-page="/Contact" class="btn btn-outline-secondary ms-2">Get in Touch</a>
+        </div>
+
+    </div>
+</div>
