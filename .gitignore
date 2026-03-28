@@ -491,3 +491,4 @@ uploads/
 
 # Claude Code internal files
 .claude/
+recovered/

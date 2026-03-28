@@ -1,0 +1,33 @@
+<div id="inline-editor-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:1050;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:12px;width:90%;max-width:800px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+        <div style="padding:1rem 1.5rem;border-bottom:1px solid #e9ecef;display:flex;justify-content:space-between;align-items:center;">
+            <h5 class="mb-0" id="editor-modal-title">Edit Content</h5>
+            <button type="button" class="btn-close" onclick="closeEditor()"></button>
+        </div>
+        <div style="padding:1rem 1.5rem;">
+            <label class="form-label fw-semibold">Title</label>
+            <input type="text" id="editor-title-input" class="form-control mb-3" />
+        </div>
+        <div style="flex:1;overflow:auto;padding:0 1.5rem;">
+            <label class="form-label fw-semibold">Content</label>
+            <div id="quill-editor" style="min-height:250px;"></div>
+        </div>
+        <div style="padding:1rem 1.5rem;border-top:1px solid #e9ecef;display:flex;gap:0.5rem;justify-content:flex-end;">
+            <button class="btn btn-outline-secondary" onclick="closeEditor()">Cancel</button>
+            <button class="btn btn-primary" id="editor-save-btn" onclick="saveContent()">Save</button>
+        </div>
+    </div>
+</div>
+
+<style>
+    .editable-block { position: relative; }
+    .editable-block .edit-btn {
+        position: absolute; top: 8px; right: 8px;
+        background: #0d6efd; color: #fff; border: none; border-radius: 6px;
+        padding: 4px 12px; font-size: 0.8rem; cursor: pointer;
+        opacity: 0.85; z-index: 10; display: flex; align-items: center; gap: 4px;
+    }
+    .editable-block .edit-btn:hover { opacity: 1; }
+    .ql-toolbar.ql-snow { border-radius: 6px 6px 0 0; }
+    .ql-container.ql-snow { border-radius: 0 0 6px 6px; min-height: 200px; }
+</style>

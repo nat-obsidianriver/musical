@@ -2,6 +2,10 @@
 @model AboutModel
 @{
     ViewData["Title"] = "About StudySax";
+    var introContent = Model.SiteContent.GetValueOrDefault("about-intro");
+    var expertContent = Model.SiteContent.GetValueOrDefault("about-expert");
+    var studentsContent = Model.SiteContent.GetValueOrDefault("about-students");
+    var affordableContent = Model.SiteContent.GetValueOrDefault("about-affordable");
 }
 
 <div class="row justify-content-center">
@@ -9,41 +13,100 @@
 
         <h1 class="h2 mb-4">About StudySax</h1>
 
-        <p class="lead">
-            StudySax is an interactive sheet music platform that brings expert advice from
-            notable saxophonists across the United States directly to your fingertips — without
-            breaking the bank.
-        </p>
+        <div class="@(Model.IsAdmin ? "editable-block" : "") mb-4">
+            @if (Model.IsAdmin)
+            {
+                <button class="edit-btn" data-slug="about-intro" data-title="@(introContent?.Title ?? "About StudySax Intro")" data-source="about-intro-content" onclick="openEditorFromBtn(this)">&#9998; Edit</button>
+            }
+            <div id="about-intro-content">
+                @if (introContent is not null)
+                {
+                    @Html.Raw(introContent.Content)
+                }
+                else
+                {
+                    <p class="lead">
+                        StudySax is an interactive sheet music platform that brings expert advice from
+                        notable saxophonists across the United States directly to your fingertips — without
+                        breaking the bank.
+                    </p>
+                    <p>
+                        Inspired by apps like ForScore, StudySax goes a step further: as you follow along
+                        with a score, highlighted sections appear wherever a saxophonist has left a tip or
+                        insight. Tap any highlight to expand it and read their advice in full — whether it's
+                        a fingering technique, a phrasing suggestion, or guidance on how to approach a
+                        particularly tricky passage.
+                    </p>
+                }
+            </div>
+        </div>
 
-        <p>
-            Inspired by apps like ForScore, StudySax goes a step further: as you follow along
-            with a score, highlighted sections appear wherever a saxophonist has left a tip or
-            insight. Tap any highlight to expand it and read their advice in full — whether it's
-            a fingering technique, a phrasing suggestion, or guidance on how to approach a
-            particularly tricky passage.
-        </p>
+        <div class="@(Model.IsAdmin ? "editable-block" : "") mb-4">
+            @if (Model.IsAdmin)
+            {
+                <button class="edit-btn" data-slug="about-expert" data-title="@(expertContent?.Title ?? "Expert Advice, Right on the Page")" data-source="about-expert-content" onclick="openEditorFromBtn(this)">&#9998; Edit</button>
+            }
+            <h2 class="h4 mt-5 mb-3">@(expertContent?.Title ?? "Expert Advice, Right on the Page")</h2>
+            <div id="about-expert-content">
+                @if (expertContent is not null)
+                {
+                    @Html.Raw(expertContent.Content)
+                }
+                else
+                {
+                    <p>
+                        Instead of searching through videos, books, or expensive private lessons, StudySax
+                        puts curated guidance from accomplished saxophonists exactly where you need it —
+                        embedded in the music itself. Each highlighted section is tied to the specific
+                        measure or phrase it applies to, so the advice is always in context.
+                    </p>
+                }
+            </div>
+        </div>
 
-        <h2 class="h4 mt-5 mb-3">Expert Advice, Right on the Page</h2>
-        <p>
-            Instead of searching through videos, books, or expensive private lessons, StudySax
-            puts curated guidance from accomplished saxophonists exactly where you need it —
-            embedded in the music itself. Each highlighted section is tied to the specific
-            measure or phrase it applies to, so the advice is always in context.
-        </p>
+        <div class="@(Model.IsAdmin ? "editable-block" : "") mb-4">
+            @if (Model.IsAdmin)
+            {
+                <button class="edit-btn" data-slug="about-students" data-title="@(studentsContent?.Title ?? "Built for Students & Audition Prep")" data-source="about-students-content" onclick="openEditorFromBtn(this)">&#9998; Edit</button>
+            }
+            <h2 class="h4 mt-5 mb-3">@(studentsContent?.Title ?? "Built for Students & Audition Prep")</h2>
+            <div id="about-students-content">
+                @if (studentsContent is not null)
+                {
+                    @Html.Raw(studentsContent.Content)
+                }
+                else
+                {
+                    <p>
+                        StudySax includes dedicated guidance for auditions, with a particular focus on
+                        high school audition repertoire. Saxophonists share what they wish they had known,
+                        giving students a real edge when it matters most.
+                    </p>
+                }
+            </div>
+        </div>
 
-        <h2 class="h4 mt-5 mb-3">Built for Students &amp; Audition Prep</h2>
-        <p>
-            StudySax includes dedicated guidance for auditions, with a particular focus on
-            high school audition repertoire. Saxophonists share what they wish they had known,
-            giving students a real edge when it matters most.
-        </p>
-
-        <h2 class="h4 mt-5 mb-3">Efficient. Concise. Affordable.</h2>
-        <p>
-            Learning from great musicians shouldn't require a fortune. StudySax is designed to
-            deliver high-quality, practical advice in a focused and accessible format — so
-            students can spend more time playing and less time searching.
-        </p>
+        <div class="@(Model.IsAdmin ? "editable-block" : "") mb-4">
+            @if (Model.IsAdmin)
+            {
+                <button class="edit-btn" data-slug="about-affordable" data-title="@(affordableContent?.Title ?? "Efficient. Concise. Affordable.")" data-source="about-affordable-content" onclick="openEditorFromBtn(this)">&#9998; Edit</button>
+            }
+            <h2 class="h4 mt-5 mb-3">@(affordableContent?.Title ?? "Efficient. Concise. Affordable.")</h2>
+            <div id="about-affordable-content">
+                @if (affordableContent is not null)
+                {
+                    @Html.Raw(affordableContent.Content)
+                }
+                else
+                {
+                    <p>
+                        Learning from great musicians shouldn't require a fortune. StudySax is designed to
+                        deliver high-quality, practical advice in a focused and accessible format — so
+                        students can spend more time playing and less time searching.
+                    </p>
+                }
+            </div>
+        </div>
 
         <div class="mt-5 d-flex gap-2 flex-wrap">
             <a asp-page="/Index" class="btn btn-primary">Browse Scores</a>
@@ -53,3 +116,18 @@
 
     </div>
 </div>
+
+@if (Model.IsAdmin)
+{
+    <partial name="_InlineEditor" />
+
+    @section Scripts {
+        <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet" />
+        <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+        <script>
+            window.__apiBase = "@Model.ApiBase";
+            window.__jwt = "@Model.JwtToken";
+        </script>
+        <partial name="_InlineEditorScripts" />
+    }
+}

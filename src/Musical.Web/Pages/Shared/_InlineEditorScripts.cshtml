@@ -1,0 +1,87 @@
+<script>
+    let currentSlug = null;
+    let quillInstance = null;
+
+    function initQuill() {
+        if (quillInstance) return;
+        quillInstance = new Quill('#quill-editor', {
+            theme: 'snow',
+            modules: {
+                toolbar: [
+                    [{ 'header': [2, 3, 4, false] }],
+                    ['bold', 'italic', 'underline'],
+                    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+                    ['link'],
+                    ['clean']
+                ]
+            }
+        });
+    }
+
+    function openEditorFromBtn(btn) {
+        const slug = btn.dataset.slug;
+        const title = btn.dataset.title;
+        const contentHtml = document.getElementById(btn.dataset.source).innerHTML;
+        openEditor(slug, title, contentHtml);
+    }
+
+    function openEditor(slug, title, contentHtml) {
+        currentSlug = slug;
+        document.getElementById('editor-modal-title').textContent = 'Edit: ' + title;
+        document.getElementById('editor-title-input').value = title;
+
+        const modal = document.getElementById('inline-editor-modal');
+        modal.style.display = 'flex';
+
+        initQuill();
+        quillInstance.root.innerHTML = contentHtml;
+    }
+
+    function closeEditor() {
+        const modal = document.getElementById('inline-editor-modal');
+        modal.style.display = 'none';
+        currentSlug = null;
+    }
+
+    async function saveContent() {
+        if (!currentSlug) return;
+        const btn = document.getElementById('editor-save-btn');
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+
+        try {
+            const resp = await fetch(window.__apiBase + '/api/site-content/' + currentSlug, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + window.__jwt
+                },
+                body: JSON.stringify({
+                    title: document.getElementById('editor-title-input').value,
+                    content: quillInstance.root.innerHTML
+                })
+            });
+
+            if (resp.ok) {
+                location.reload();
+            } else {
+                alert('Failed to save: ' + resp.status);
+            }
+        } catch (e) {
+            alert('Error saving: ' + e.message);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Save';
+        }
+    }
+
+    // Close on backdrop click
+    document.getElementById('inline-editor-modal')?.addEventListener('click', function(e) {
+        if (e.target === this) closeEditor();
+    });
+
+    // Close on Escape
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') closeEditor();
+    });
+</script>

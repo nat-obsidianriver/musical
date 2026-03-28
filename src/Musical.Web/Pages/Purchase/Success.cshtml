@@ -1,0 +1,26 @@
+@page
+@model Musical.Web.Pages.Purchase.SuccessModel
+@{
+    ViewData["Title"] = "Purchase Complete";
+}
+
+<div class="row justify-content-center mt-4">
+    <div class="col-md-6">
+        <div class="card border-warning">
+            <div class="card-body text-center">
+                <h3 class="card-title text-warning">Processing Payment</h3>
+                <p class="card-text mt-3">
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+                    @Model.ErrorMessage
+}
+else
+{
+                    @:Your payment is being processed. If you're not redirected within a few moments, please contact support.
+}
+                </p>
+                <a asp-page="/Purchase/Index" class="btn btn-outline-primary mt-3">Try Again</a>
+            </div>
+        </div>
+    </div>
+</div>

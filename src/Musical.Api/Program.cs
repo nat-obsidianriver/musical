@@ -89,6 +89,16 @@ using (var scope = app.Services.CreateScope())
         await userManager.CreateAsync(adminUser, adminPw);
         await userManager.AddToRoleAsync(adminUser, "Admin");
     }
+
+    // Seed default tutorial video if none exists
+    if (!await db.SiteSettings.AnyAsync(s => s.Key == "tutorial-video-source"))
+    {
+        db.SiteSettings.AddRange(
+            new Musical.Core.Models.SiteSetting { Key = "tutorial-video-source", Value = "youtube" },
+            new Musical.Core.Models.SiteSetting { Key = "tutorial-video-url", Value = "https://www.youtube.com/watch?v=ScMzIvxBSi4" }
+        );
+        await db.SaveChangesAsync();
+    }
 }
 
 app.UseCors();

@@ -11,6 +11,9 @@ public class MusicalDbContext(DbContextOptions<MusicalDbContext> options)
     public DbSet<Score> Scores => Set<Score>();
     public DbSet<Annotation> Annotations => Set<Annotation>();
     public DbSet<Folder> Folders => Set<Folder>();
+    public DbSet<SiteSetting> SiteSettings => Set<SiteSetting>();
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<SiteContent> SiteContents => Set<SiteContent>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -43,12 +46,36 @@ public class MusicalDbContext(DbContextOptions<MusicalDbContext> options)
              .OnDelete(DeleteBehavior.SetNull);
         });
 
+        modelBuilder.Entity<SiteSetting>(e =>
+        {
+            e.Property(s => s.Key).HasMaxLength(100).IsRequired();
+            e.Property(s => s.Value).HasMaxLength(2000).IsRequired();
+            e.HasIndex(s => s.Key).IsUnique();
+        });
+
         modelBuilder.Entity<Folder>(e =>
         {
             e.Property(f => f.Name).HasMaxLength(200).IsRequired();
             e.Property(f => f.Color).HasMaxLength(20);
             e.Property(f => f.UserId).HasMaxLength(450).IsRequired();
             e.Property(f => f.UserDisplayName).HasMaxLength(200);
+        });
+
+        modelBuilder.Entity<Payment>(e =>
+        {
+            e.Property(p => p.UserId).HasMaxLength(450).IsRequired();
+            e.Property(p => p.StripeSessionId).HasMaxLength(500).IsRequired();
+            e.Property(p => p.StripePaymentIntentId).HasMaxLength(500);
+            e.Property(p => p.Status).HasMaxLength(50).IsRequired();
+            e.Property(p => p.Currency).HasMaxLength(10);
+        });
+
+        modelBuilder.Entity<SiteContent>(e =>
+        {
+            e.Property(sc => sc.Slug).HasMaxLength(100).IsRequired();
+            e.Property(sc => sc.Title).HasMaxLength(200).IsRequired();
+            e.Property(sc => sc.Content).IsRequired();
+            e.HasIndex(sc => sc.Slug).IsUnique();
         });
     }
 }

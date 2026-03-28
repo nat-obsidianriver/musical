@@ -1,0 +1,66 @@
+@page
+@model Musical.Web.Pages.Admin.TutorialVideoModel
+@{
+    ViewData["Title"] = "Manage Tutorial Video";
+}
+
+<h1 class="mb-4">Manage Tutorial Video</h1>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success">@Model.StatusMessage</div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header fw-semibold">Option 1: YouTube Video URL</div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="YouTubeUrl">
+                    <div class="mb-3">
+                        <label for="youtubeUrl" class="form-label">YouTube URL</label>
+                        <input type="url" class="form-control" id="youtubeUrl" name="youtubeUrl"
+                               value="@Model.CurrentYouTubeUrl"
+                               placeholder="https://www.youtube.com/watch?v=..." />
+                        <div class="form-text">Paste a YouTube video link. Supports youtube.com/watch and youtu.be formats.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Save YouTube URL</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header fw-semibold">Option 2: Upload a Video File</div>
+            <div class="card-body">
+                <form method="post" asp-page-handler="Upload" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="videoFile" class="form-label">Video File</label>
+                        <input type="file" class="form-control" id="videoFile" name="videoFile" accept=".mp4,.webm,.ogg" />
+                        <div class="form-text">Accepted formats: MP4, WebM, OGG. Max 200 MB.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Upload Video</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header fw-semibold">Current Setting</div>
+            <div class="card-body">
+                @if (Model.CurrentSource == "youtube" && !string.IsNullOrEmpty(Model.CurrentYouTubeUrl))
+                {
+                    <p><strong>Source:</strong> YouTube</p>
+                    <p><strong>URL:</strong> <a href="@Model.CurrentYouTubeUrl" target="_blank">@Model.CurrentYouTubeUrl</a></p>
+                }
+                else if (Model.CurrentSource == "file" && !string.IsNullOrEmpty(Model.CurrentFileName))
+                {
+                    <p><strong>Source:</strong> Uploaded file</p>
+                    <p><strong>File:</strong> @Model.CurrentFileName</p>
+                }
+                else
+                {
+                    <p class="text-muted">No tutorial video configured.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,33 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: src/Musical.Api/Dockerfile
+    ports:
+      - "5241:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__Default=Data Source=/app/data/musical.db
+      - Jwt__Key=dev-only-secret-key-replace-in-production-32chars!!
+      - Jwt__Issuer=musical-api
+      - Jwt__Audience=musical-clients
+      - AllowedOrigins=http://localhost:5127
+    volumes:
+      - api-data:/app/data
+      - api-uploads:/app/uploads
+
+  web:
+    build:
+      context: .
+      dockerfile: src/Musical.Web/Dockerfile
+    ports:
+      - "5127:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ApiBaseUrl=http://api:8080
+    depends_on:
+      - api
+
+volumes:
+  api-data:
+  api-uploads:

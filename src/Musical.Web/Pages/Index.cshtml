@@ -7,19 +7,28 @@
         .OrderBy(g => g.Key.FolderName ?? "zzz");
 }
 
-@if (User.Identity?.IsAuthenticated != true)
+@{
+    var showLanding = User.Identity?.IsAuthenticated != true || Model.IsAdmin;
+    var heroContent = Model.SiteContent.GetValueOrDefault("home-hero");
+    var featureCards = new[] { "home-feature-1", "home-feature-2", "home-feature-3" };
+    var ctaContent = Model.SiteContent.GetValueOrDefault("home-cta");
+}
+
+@if (showLanding)
 {
-    <!-- ===== LANDING PAGE (unauthenticated visitors) ===== -->
+    <!-- ===== LANDING PAGE (unauthenticated visitors + admin) ===== -->
 
     <!-- Hero -->
-    <div class="text-center py-5 mb-4" style="background:linear-gradient(135deg,#e8f4fd 0%,#f0f8ff 100%);border-radius:12px;">
+    <div class="@(Model.IsAdmin ? "editable-block" : "") text-center py-5 mb-4" style="background:linear-gradient(135deg,#e8f4fd 0%,#f0f8ff 100%);border-radius:12px;">
+        @if (Model.IsAdmin)
+        {
+            <button class="edit-btn" data-slug="home-hero" data-title="@(heroContent?.Title ?? "Learn from the Best.<br/>Right on the Page.")" data-source="home-hero-content" onclick="openEditorFromBtn(this)">&#9998; Edit</button>
+        }
         <img src="~/images/study-sax-logo.jpeg" alt="StudySax" style="height:80px;width:auto;border-radius:10px;margin-bottom:1.25rem;" />
-        <h1 class="display-5 fw-bold mb-3" style="color:#1a1a1a;">Learn from the Best.<br/>Right on the Page.</h1>
-        <p class="lead mb-4 mx-auto" style="max-width:600px;color:#444;">
-            StudySax puts expert advice from America's top concert saxophonists
-            directly inside your sheet music — as interactive annotations you can
-            explore at your own pace.
-        </p>
+        <h1 class="display-5 fw-bold mb-3" style="color:#1a1a1a;">@Html.Raw(heroContent?.Title ?? "Learn from the Best.<br/>Right on the Page.")</h1>
+        <div id="home-hero-content" class="lead mb-4 mx-auto" style="max-width:600px;color:#444;">
+            @Html.Raw(heroContent?.Content ?? "StudySax puts expert advice from America's top concert saxophonists directly inside your sheet music — as interactive annotations you can explore at your own pace.")
+        </div>
         <div class="d-flex gap-3 justify-content-center flex-wrap">
             <a asp-page="/Auth/Register" class="btn btn-primary btn-lg px-4">Get Started — $30</a>
             <a asp-page="/About" class="btn btn-outline-secondary btn-lg px-4">Learn More</a>
@@ -29,36 +38,31 @@
 
     <!-- How it works -->
     <div class="row text-center g-4 mb-5">
-        <div class="col-md-4">
-            <div class="p-4 h-100" style="background:#fff;border-radius:10px;border:1px solid #e9ecef;">
-                <div style="font-size:2.5rem;margin-bottom:0.75rem;">🎼</div>
-                <h3 class="h5 fw-semibold mb-2">Browse the Library</h3>
-                <p class="text-muted small mb-0">
-                    Access a curated collection of concert saxophone repertoire,
-                    selected and annotated by faculty saxophonists.
-                </p>
+        @{
+            var defaultFeatures = new[]
+            {
+                new { Slug = "home-feature-1", Emoji = "🎼", Title = "Browse the Library", Text = "Access a curated collection of concert saxophone repertoire, selected and annotated by faculty saxophonists." },
+                new { Slug = "home-feature-2", Emoji = "💡", Title = "Tap Any Highlight", Text = "Highlighted sections mark where a professor has advice. Tap to expand and read their insight on that exact passage." },
+                new { Slug = "home-feature-3", Emoji = "🎷", Title = "Play Better", Text = "Get consistent, reputable guidance on technique, interpretation, and audition prep — from professors you can trust." },
+            };
+        }
+        @foreach (var feature in defaultFeatures)
+        {
+            var fc = Model.SiteContent.GetValueOrDefault(feature.Slug);
+            <div class="col-md-4">
+                <div class="@(Model.IsAdmin ? "editable-block" : "") p-4 h-100" style="background:#fff;border-radius:10px;border:1px solid #e9ecef;">
+                    @if (Model.IsAdmin)
+                    {
+                        <button class="edit-btn" data-slug="@feature.Slug" data-title="@(fc?.Title ?? feature.Title)" data-source="@(feature.Slug)-content" onclick="openEditorFromBtn(this)">&#9998; Edit</button>
+                    }
+                    <div style="font-size:2.5rem;margin-bottom:0.75rem;">@feature.Emoji</div>
+                    <h3 class="h5 fw-semibold mb-2">@(fc?.Title ?? feature.Title)</h3>
+                    <div id="@(feature.Slug)-content" class="text-muted small mb-0">
+                        @Html.Raw(fc?.Content ?? feature.Text)
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="col-md-4">
-            <div class="p-4 h-100" style="background:#fff;border-radius:10px;border:1px solid #e9ecef;">
-                <div style="font-size:2.5rem;margin-bottom:0.75rem;">💡</div>
-                <h3 class="h5 fw-semibold mb-2">Tap Any Highlight</h3>
-                <p class="text-muted small mb-0">
-                    Highlighted sections mark where a professor has advice. Tap to
-                    expand and read their insight on that exact passage.
-                </p>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="p-4 h-100" style="background:#fff;border-radius:10px;border:1px solid #e9ecef;">
-                <div style="font-size:2.5rem;margin-bottom:0.75rem;">🎷</div>
-                <h3 class="h5 fw-semibold mb-2">Play Better</h3>
-                <p class="text-muted small mb-0">
-                    Get consistent, reputable guidance on technique, interpretation,
-                    and audition prep — from professors you can trust.
-                </p>
-            </div>
-        </div>
+        }
     </div>
 
     <!-- Featured professors -->
@@ -92,19 +96,20 @@
     </div>
 
     <!-- Who it's for -->
-    <div class="p-4 mb-5 text-center" style="background:#fff;border-radius:12px;border:1px solid #e9ecef;">
-        <h2 class="h4 fw-semibold mb-3">Built for Serious Students</h2>
-        <p class="text-muted mb-4 mx-auto" style="max-width:580px;">
-            StudySax is designed for high school and college saxophonists who want
-            reputable, specific guidance — not a gamble on who you'll find online.
-            Whether you're prepping for an audition or deepening your understanding
-            of a piece, StudySax gives you a direct line to professors at the
-            nation's top conservatories.
-        </p>
+    <div class="@(Model.IsAdmin ? "editable-block" : "") p-4 mb-5 text-center" style="background:#fff;border-radius:12px;border:1px solid #e9ecef;">
+        @if (Model.IsAdmin)
+        {
+            <button class="edit-btn" data-slug="home-cta" data-title="@(ctaContent?.Title ?? "Built for Serious Students")" data-source="home-cta-content" onclick="openEditorFromBtn(this)">&#9998; Edit</button>
+        }
+        <h2 class="h4 fw-semibold mb-3">@(ctaContent?.Title ?? "Built for Serious Students")</h2>
+        <div id="home-cta-content" class="text-muted mb-4 mx-auto" style="max-width:580px;">
+            @Html.Raw(ctaContent?.Content ?? "StudySax is designed for high school and college saxophonists who want reputable, specific guidance — not a gamble on who you'll find online. Whether you're prepping for an audition or deepening your understanding of a piece, StudySax gives you a direct line to professors at the nation's top conservatories.")
+        </div>
         <a asp-page="/Auth/Register" class="btn btn-primary px-4">Join for $30 — One Time</a>
     </div>
 }
-else
+
+@if (User.Identity?.IsAuthenticated == true)
 {
     <!-- ===== SCORE LIBRARY (authenticated users) ===== -->
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -198,5 +203,20 @@ else
                 </div>
             </div>
         }
+    }
+}
+
+@if (Model.IsAdmin)
+{
+    <partial name="_InlineEditor" />
+
+    @section Scripts {
+        <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet" />
+        <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+        <script>
+            window.__apiBase = "@(ViewContext.HttpContext.RequestServices.GetRequiredService<IConfiguration>()["ApiBaseUrl"] ?? "http://localhost:5241")";
+            window.__jwt = "@Model.JwtToken";
+        </script>
+        <partial name="_InlineEditorScripts" />
     }
 }
